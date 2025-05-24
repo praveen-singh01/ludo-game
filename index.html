@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Ludo Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 222.2 84% 4.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 222.2 84% 4.9%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 222.2 84% 4.9%;
+      --primary: 262.1 83.3% 57.8%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 210 40% 96%;
+      --secondary-foreground: 222.2 84% 4.9%;
+      --muted: 210 40% 96%;
+      --muted-foreground: 215.4 16.3% 46.9%;
+      --accent: 210 40% 96%;
+      --accent-foreground: 222.2 84% 4.9%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 214.3 31.8% 91.4%;
+      --input: 214.3 31.8% 91.4%;
+      --ring: 262.1 83.3% 57.8%;
+      --radius: 0.5rem;
+
+      /* Game-specific variables */
+      --token-highlight: rgba(255,255,255,0.4);
+      --token-shadow-light: rgba(255,255,255,0.2);
+      --token-shadow-dark: rgba(0,0,0,0.3);
+      --board-bg-image: linear-gradient(45deg, rgba(210, 180, 140, 0.2) 25%, transparent 25%, transparent 75%, rgba(210, 180, 140, 0.2) 75%, rgba(210, 180, 140, 0.2)),
+                        linear-gradient(45deg, rgba(210, 180, 140, 0.2) 25%, transparent 25%, transparent 75%, rgba(210, 180, 140, 0.2) 75%, rgba(210, 180, 140, 0.2));
+      --board-bg-size: 20px 20px;
+      --board-bg-position: 0 0, 10px 10px;
+    }
+
+    .dark {
+      --background: 222.2 84% 4.9%;
+      --foreground: 210 40% 98%;
+      --card: 222.2 84% 4.9%;
+      --card-foreground: 210 40% 98%;
+      --popover: 222.2 84% 4.9%;
+      --popover-foreground: 210 40% 98%;
+      --primary: 262.1 83.3% 57.8%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 217.2 32.6% 17.5%;
+      --secondary-foreground: 210 40% 98%;
+      --muted: 217.2 32.6% 17.5%;
+      --muted-foreground: 215 20.2% 65.1%;
+      --accent: 217.2 32.6% 17.5%;
+      --accent-foreground: 210 40% 98%;
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 217.2 32.6% 17.5%;
+      --input: 217.2 32.6% 17.5%;
+      --ring: 262.1 83.3% 57.8%;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+    }
+
+    .dice-dot {
+      width: 12px;
+      height: 12px;
+      background-color: #1a1a1a;
+      border-radius: 50%;
+      align-self: center;
+      justify-self: center;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
+    }
+
+    .path-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background-clip: padding-box;
+      min-height: 100%;
+      min-width: 100%;
+    }
+
+    .home-yard-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .home-area-triangle {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+
+    /* Enhanced animations */
+    @keyframes token-glow {
+      0%, 100% { box-shadow: 0 0 5px rgba(147, 51, 234, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(147, 51, 234, 0.8), 0 0 30px rgba(147, 51, 234, 0.4); }
+    }
+
+    .token-playable {
+      animation: token-glow 1.5s ease-in-out infinite;
+    }
+
+    /* Improved board styling */
+    .board-enhanced {
+      filter: drop-shadow(0 25px 50px rgba(0, 0, 0, 0.15));
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
+  }
+}
+</script>
+</head>
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+</html><link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
