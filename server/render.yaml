@@ -6,9 +6,12 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
+    port: 10000
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: FRONTEND_URL
         sync: false
     scaling:
