@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trophy, 
-  Users, 
-  Clock, 
-  Play, 
-  Crown, 
+import {
+  Trophy,
+  Users,
+  Clock,
+  Play,
+  Crown,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Tournament, TournamentBracket as BracketType, TournamentParticipant } from '../../types';
+import { Tournament, TournamentParticipant } from '../../types';
 import { cn } from '../../lib/utils';
 
 interface TournamentBracketProps {
@@ -35,10 +35,10 @@ interface BracketMatch {
   startTime?: string;
 }
 
-const TournamentBracket: React.FC<TournamentBracketProps> = ({ 
-  tournament, 
-  onSpectateMatch, 
-  onBack 
+const TournamentBracket: React.FC<TournamentBracketProps> = ({
+  tournament,
+  onSpectateMatch,
+  onBack
 }) => {
   const [selectedRound, setSelectedRound] = useState(1);
   const [liveMatches, setLiveMatches] = useState<string[]>([]);
@@ -47,22 +47,22 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
   const generateBracketMatches = (): BracketMatch[] => {
     const matches: BracketMatch[] = [];
     const totalRounds = Math.ceil(Math.log2(tournament.maxParticipants));
-    
+
     // Create matches for each round
     for (let round = 1; round <= totalRounds; round++) {
       const matchesInRound = Math.pow(2, totalRounds - round);
-      
+
       for (let match = 1; match <= matchesInRound; match++) {
         const bracketData = tournament.brackets.find(
           b => b.round === round && b.match === match
         );
-        
-        const participants = bracketData?.participants.map(pId => 
+
+        const participants = bracketData?.participants.map(pId =>
           tournament.participants.find(p => p.userId === pId)
         ).filter(Boolean) as TournamentParticipant[] || [];
-        
-        const winner = bracketData?.winner ? 
-          tournament.participants.find(p => p.userId === bracketData.winner) : 
+
+        const winner = bracketData?.winner ?
+          tournament.participants.find(p => p.userId === bracketData.winner) :
           undefined;
 
         matches.push({
@@ -76,7 +76,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
         });
       }
     }
-    
+
     return matches;
   };
 
@@ -157,7 +157,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               <p className="text-gray-600">Tournament Bracket</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -167,17 +167,17 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               <Trophy className="w-3 h-3" />
               {tournament.prizePool.toLocaleString()} coins
             </Badge>
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={cn(
                 "flex items-center gap-1",
-                tournament.status === 'IN_PROGRESS' ? 'bg-green-100 text-green-800' : 
-                tournament.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' : 
+                tournament.status === 'IN_PROGRESS' ? 'bg-green-100 text-green-800' :
+                tournament.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
                 'bg-gray-100 text-gray-800'
               )}
             >
-              {tournament.status === 'IN_PROGRESS' ? <Play className="w-3 h-3" /> : 
-               tournament.status === 'COMPLETED' ? <Crown className="w-3 h-3" /> : 
+              {tournament.status === 'IN_PROGRESS' ? <Play className="w-3 h-3" /> :
+               tournament.status === 'COMPLETED' ? <Crown className="w-3 h-3" /> :
                <Clock className="w-3 h-3" />}
               {tournament.status.replace('_', ' ')}
             </Badge>
@@ -199,7 +199,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          
+
           <div className="flex gap-2">
             {Array.from({ length: totalRounds }, (_, i) => i + 1).map(round => (
               <Button
@@ -213,7 +213,7 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               </Button>
             ))}
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -245,8 +245,8 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
               >
                 <Card className={cn(
                   "relative overflow-hidden transition-all duration-300",
-                  match.status === 'IN_PROGRESS' && liveMatches.includes(match.id) 
-                    ? "ring-2 ring-green-400 shadow-lg" 
+                  match.status === 'IN_PROGRESS' && liveMatches.includes(match.id)
+                    ? "ring-2 ring-green-400 shadow-lg"
                     : "hover:shadow-md"
                 )}>
                   {/* Live indicator */}
@@ -272,13 +272,13 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
                     {/* Participants */}
                     <div className="space-y-2">
                       {match.participants.length > 0 ? (
-                        match.participants.map((participant, pIndex) => (
+                        match.participants.map((participant, _pIndex) => (
                           <div
                             key={participant.userId}
                             className={cn(
                               "flex items-center gap-3 p-2 rounded-lg transition-colors",
-                              match.winner?.userId === participant.userId 
-                                ? "bg-yellow-100 border border-yellow-300" 
+                              match.winner?.userId === participant.userId
+                                ? "bg-yellow-100 border border-yellow-300"
                                 : "bg-gray-50"
                             )}
                           >
@@ -333,8 +333,8 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({
           <Card className="bg-white/80 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                {tournament.rules.gameMode === 'quick' ? 
-                  <Zap className="w-4 h-4 text-yellow-600" /> : 
+                {tournament.rules.gameMode === 'quick' ?
+                  <Zap className="w-4 h-4 text-yellow-600" /> :
                   <Target className="w-4 h-4 text-blue-600" />
                 }
                 <span className="font-semibold">Game Mode</span>

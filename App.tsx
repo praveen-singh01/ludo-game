@@ -8,7 +8,7 @@ import { useUserProfileStore } from './store/userProfileStore';
 import GameBoard from './components/GameBoard';
 import DiceRoll from './components/DiceRoll';
 import { PlayerInfoCard, GameStatusDisplay } from './components/PlayerInfo';
-import GameSetup from './components/GameSetup';
+// import GameSetup from './components/GameSetup';
 import { AIGameSetup } from './components/AIGameSetup';
 import MultiplayerSetup from './components/multiplayer/MultiplayerSetup';
 import MultiplayerLobby from './components/multiplayer/MultiplayerLobby';

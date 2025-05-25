@@ -302,7 +302,7 @@ export const useLudoGame = () => {
     const allTokensFinished = playerAfterMove.tokens.every(t => t.state === TokenState.FINISHED);
     if (allTokensFinished) {
       // Award rewards for game completion
-      const isWinner = true;
+      // const isWinner = true;
       const hasAIOpponents = newPlayersState.some(p => p.isAI && p.id !== playerAfterMove.id);
 
       // Calculate rewards based on game type and performance
@@ -324,7 +324,7 @@ export const useLudoGame = () => {
       }
 
       // Bonus for perfect game (no tokens captured)
-      const tokensLost = playerAfterMove.tokens.filter(t =>
+      const tokensLost = playerAfterMove.tokens.filter(_t =>
         // This is a simplified check - in a real implementation you'd track captures
         false // For now, no perfect game detection
       ).length;

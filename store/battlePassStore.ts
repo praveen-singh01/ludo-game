@@ -226,7 +226,7 @@ export const useBattlePassStore = create<BattlePassState>()(
         return true
       },
 
-      addExperience: (amount: number, source?: string) => {
+      addExperience: (amount: number, _source?: string) => {
         const { userProgress, currentBattlePass, progressHistory } = get()
         if (!userProgress || !currentBattlePass) return
 
@@ -348,7 +348,7 @@ export const useBattlePassStore = create<BattlePassState>()(
       },
 
       getProgressStats: () => {
-        const { userProgress, currentBattlePass, progressHistory } = get()
+        const { userProgress, currentBattlePass } = get()
         if (!userProgress || !currentBattlePass) {
           return {
             totalExperience: 0,

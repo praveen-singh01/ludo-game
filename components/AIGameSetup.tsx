@@ -4,7 +4,7 @@ import { Bot, User, Settings, Play, ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { PlayerColor, PLAYER_COLORS_LIST } from '../types';
+import { PlayerColor } from '../types';
 import { AIDifficulty } from '../hooks/useAI';
 
 interface PlayerConfig {
@@ -47,7 +47,7 @@ export const AIGameSetup: React.FC<AIGameSetupProps> = ({ onSetupComplete, onBac
         // Update name when AI status or difficulty changes
         if (updates.isAI !== undefined || updates.difficulty !== undefined) {
           const colorName = updated.color.charAt(0) + updated.color.slice(1).toLowerCase();
-          updated.name = updated.isAI 
+          updated.name = updated.isAI
             ? `AI ${colorName} (${updated.difficulty})`
             : `Player ${index + 1}`;
         }
@@ -62,7 +62,7 @@ export const AIGameSetup: React.FC<AIGameSetupProps> = ({ onSetupComplete, onBac
       .slice(0, numPlayers)
       .map((config, index) => ({ playerIndex: index, difficulty: config.difficulty }))
       .filter((_, index) => playerConfigs[index].isAI);
-    
+
     onSetupComplete(numPlayers, aiPlayers);
   };
 
@@ -177,7 +177,7 @@ export const AIGameSetup: React.FC<AIGameSetupProps> = ({ onSetupComplete, onBac
                             <div className="min-w-[120px]">
                               <Select
                                 value={config.difficulty}
-                                onValueChange={(value: AIDifficulty) => 
+                                onValueChange={(value: AIDifficulty) =>
                                   updatePlayerConfig(index, { difficulty: value })
                                 }
                               >
