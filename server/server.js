@@ -7,16 +7,29 @@ import dotenv from 'dotenv';
 import { GameRoomManager } from './gameRoomManager.js';
 import { GameStateManager } from './gameStateManager.js';
 
+console.log('🚀 Starting Ludo Master Server...');
+console.log('📦 Loading dependencies complete');
+
 dotenv.config();
+console.log('⚙️ Environment variables loaded');
 
 const app = express();
+console.log('🌐 Express app created');
+
 const server = createServer(app);
+console.log('🔗 HTTP server created');
 
 // CORS configuration
+console.log('🔒 Setting up CORS configuration...');
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log(`🔍 CORS check for origin: ${origin || 'no-origin'}`);
+
     // Allow requests with no origin (like mobile apps, curl, Postman, Render health checks)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
 
     const allowedOrigins = [
       "http://localhost:5173",
@@ -25,14 +38,18 @@ const corsOptions = {
       process.env.FRONTEND_URL
     ].filter(Boolean);
 
+    console.log(`🔍 CORS: Allowed origins:`, allowedOrigins);
+
     // Check if origin matches allowed patterns
     const isAllowed = allowedOrigins.includes(origin) ||
                      /\.vercel\.app$/.test(origin) ||
                      /\.render\.com$/.test(origin);
 
     if (isAllowed) {
+      console.log(`✅ CORS: Origin ${origin} is allowed`);
       callback(null, true);
     } else {
+      console.log(`⚠️ CORS: Origin ${origin} not in allowed list, but allowing anyway`);
       callback(null, true); // Allow all for now to fix health checks
     }
   },
@@ -40,16 +57,23 @@ const corsOptions = {
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 };
+console.log('🔒 CORS configuration complete');
 
+console.log('🔧 Setting up Express middleware...');
 app.use(cors(corsOptions));
+console.log('✅ CORS middleware applied');
+
 app.use(express.json());
+console.log('✅ JSON parser middleware applied');
 
 // Debug middleware to log all requests
 app.use((req, _res, next) => {
-  console.log(`🔍 Request: ${req.method} ${req.url}`);
+  console.log(`🔍 Request: ${req.method} ${req.url} from ${req.get('origin') || 'no-origin'}`);
   next();
 });
+console.log('✅ Debug logging middleware applied');
 
+console.log('🔌 Initializing Socket.IO server...');
 const io = new Server(server, {
   cors: {
     origin: true, // Allow all origins for now
@@ -65,17 +89,34 @@ const io = new Server(server, {
   cookie: false
 });
 
-console.log('🔍 Socket.IO server initialized with transports: polling, websocket');
+console.log('✅ Socket.IO server initialized with transports: polling, websocket');
+console.log('🔌 Socket.IO CORS config: origin=true, methods=GET,POST, credentials=true');
 
 // Add Socket.IO debugging
+console.log('🔍 Setting up Socket.IO event listeners...');
+
 io.engine.on('connection_error', (err) => {
   console.log('🚨 Socket.IO connection error:', err.req);
   console.log('🚨 Error details:', err.code, err.message, err.context);
 });
 
+io.engine.on('initial_headers', (_headers, req) => {
+  console.log('🔍 Socket.IO initial headers:', req.url);
+});
+
+io.engine.on('headers', (_headers, req) => {
+  console.log('🔍 Socket.IO headers event:', req.url);
+});
+
+console.log('✅ Socket.IO debugging events set up');
+
 // Initialize managers
+console.log('🎮 Initializing game managers...');
 const roomManager = new GameRoomManager();
+console.log('✅ GameRoomManager initialized');
+
 const gameStateManager = new GameStateManager();
+console.log('✅ GameStateManager initialized');
 
 // Root endpoint
 app.get('/', (_req, res) => {
@@ -112,17 +153,20 @@ app.get('/socket.io/test', (_req, res) => {
   });
 });
 
-console.log('🔍 Routes registered: /, /health, /socket.io/test');
+console.log('✅ Routes registered: /, /health, /socket.io/test');
 
 // Get room info endpoint
 app.get('/room/:roomId', (req, res) => {
   const { roomId } = req.params;
+  console.log(`🔍 Room info requested for: ${roomId}`);
   const room = roomManager.getRoom(roomId);
 
   if (!room) {
+    console.log(`❌ Room not found: ${roomId}`);
     return res.status(404).json({ error: 'Room not found' });
   }
 
+  console.log(`✅ Room info found for: ${roomId}`);
   res.json({
     roomId: room.id,
     playerCount: room.players.length,
@@ -131,10 +175,15 @@ app.get('/room/:roomId', (req, res) => {
     isPrivate: room.isPrivate
   });
 });
+console.log('✅ Room info route (/room/:roomId) registered');
+
+console.log('🛣️ All Express routes registered successfully');
 
 // Socket.io connection handling
+console.log('🔌 Setting up Socket.IO connection handler...');
 io.on('connection', (socket) => {
-  console.log(`🔗 Player connected: ${socket.id} via ${socket.conn.transport.name}`);
+  console.log(`🔗 NEW SOCKET CONNECTION: ${socket.id} via ${socket.conn.transport.name}`);
+  console.log(`🔍 Socket handshake: ${JSON.stringify(socket.handshake.headers.origin || 'no-origin')}`);
 
   // Create or join room
   socket.on('create-room', (data) => {
@@ -351,33 +400,44 @@ io.on('connection', (socket) => {
   });
 });
 
+console.log('🔧 Setting up server configuration...');
 const PORT = process.env.PORT || 3001;
 console.log(`🔍 Debug: PORT environment variable = ${process.env.PORT}`);
+console.log(`🔍 Using PORT: ${PORT}`);
 const NODE_ENV = process.env.NODE_ENV || 'development';
+console.log(`🔍 Environment: ${NODE_ENV}`);
 
 // Global error handlers
+console.log('⚠️ Setting up global error handlers...');
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('🚨 Uncaught Exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  console.log('🛑 SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
+    console.log('✅ Process terminated');
     process.exit(0);
   });
 });
+console.log('✅ Error handlers and shutdown handlers set up');
 
+console.log('🚀 Starting server...');
 server.listen(PORT, '0.0.0.0', () => {
+  console.log('='.repeat(50));
   console.log(`🚀 Ludo Master multiplayer server running on port ${PORT}`);
   console.log(`🌐 Environment: ${NODE_ENV}`);
   console.log(`🔗 CORS enabled with dynamic origin validation`);
   console.log(`📊 Health check available at: /health`);
+  console.log(`🔌 Socket.IO available at: /socket.io/`);
+  console.log(`🧪 Socket.IO test endpoint: /socket.io/test`);
+  console.log('='.repeat(50));
+  console.log('✅ Server is ready to accept connections!');
 });
