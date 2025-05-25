@@ -44,6 +44,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Debug middleware to log all requests
+app.use((req, _res, next) => {
+  console.log(`🔍 Request: ${req.method} ${req.url}`);
+  next();
+});
+
 const io = new Server(server, {
   cors: {
     origin: true, // Allow all origins for now
@@ -96,7 +102,17 @@ app.get('/health', (_req, res) => {
   });
 });
 
-console.log('🔍 Routes registered: /, /health');
+// Test Socket.IO endpoint
+app.get('/socket.io/test', (_req, res) => {
+  console.log('🔍 Socket.IO test endpoint accessed');
+  res.json({
+    message: 'Socket.IO server is running',
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  });
+});
+
+console.log('🔍 Routes registered: /, /health, /socket.io/test');
 
 // Get room info endpoint
 app.get('/room/:roomId', (req, res) => {
