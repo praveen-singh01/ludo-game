@@ -45,7 +45,11 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 const io = new Server(server, {
-  cors: corsOptions,
+  cors: {
+    origin: true, // Allow all origins for now
+    methods: ["GET", "POST"],
+    credentials: true
+  },
   transports: ['polling', 'websocket'], // Try polling first for Render compatibility
   pingTimeout: 60000,
   pingInterval: 25000,
@@ -74,9 +78,12 @@ app.get('/', (_req, res) => {
     message: 'Ludo Master Server is running!',
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    socketIO: 'enabled'
   });
 });
+
+
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

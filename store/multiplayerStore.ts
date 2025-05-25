@@ -107,9 +107,11 @@ export const useMultiplayerStore = create<MultiplayerState>()(
         set({ connecting: true, connectionError: null })
 
         const socket = io(serverUrl, {
-          transports: ['websocket', 'polling'],
-          timeout: 10000,
-          forceNew: true
+          transports: ['polling', 'websocket'], // Try polling first for Render compatibility
+          timeout: 15000,
+          forceNew: true,
+          upgrade: true,
+          rememberUpgrade: false
         })
 
         // Connection events
