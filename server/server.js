@@ -59,6 +59,7 @@ const gameStateManager = new GameStateManager();
 
 // Root endpoint
 app.get('/', (_req, res) => {
+  console.log('🔍 Root endpoint accessed');
   res.json({
     message: 'Ludo Master Server is running!',
     status: 'ok',
@@ -69,6 +70,7 @@ app.get('/', (_req, res) => {
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
+  console.log('🔍 Health endpoint accessed');
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -76,6 +78,8 @@ app.get('/health', (_req, res) => {
     connectedPlayers: io.engine.clientsCount
   });
 });
+
+console.log('🔍 Routes registered: /, /health');
 
 // Get room info endpoint
 app.get('/room/:roomId', (req, res) => {
@@ -315,6 +319,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+console.log(`🔍 Debug: PORT environment variable = ${process.env.PORT}`);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Global error handlers
