@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Settings, Save, Menu, Globe, Gamepad2 } from 'lucide-react';
+import { RotateCcw, Settings, Save, Menu, Globe, Gamepad2, User, Trophy, ShoppingBag } from 'lucide-react';
 import { useLudoGame } from './hooks/useLudoGame';
 import { useGameStore } from './store/gameStore';
 import { useMultiplayerStore } from './store/multiplayerStore';
+import { useUserProfileStore } from './store/userProfileStore';
 import GameBoard from './components/GameBoard';
 import DiceRoll from './components/DiceRoll';
 import { PlayerInfoCard, GameStatusDisplay } from './components/PlayerInfo';
@@ -11,6 +12,9 @@ import GameSetup from './components/GameSetup';
 import MultiplayerSetup from './components/multiplayer/MultiplayerSetup';
 import MultiplayerLobby from './components/multiplayer/MultiplayerLobby';
 import ChatPanel from './components/multiplayer/ChatPanel';
+import ProfilePage from './components/profile/ProfilePage';
+import LeaderboardPage from './components/leaderboard/LeaderboardPage';
+import ShopPage from './components/shop/ShopPage';
 import { Button } from './components/ui/button';
 import { PLAYER_SETUP_CONFIG } from './constants';
 
@@ -35,8 +39,15 @@ const App: React.FC = () => {
     disconnect
   } = useMultiplayerStore();
 
-  // State for game mode selection
+  const {
+    profile,
+    isAuthenticated,
+    initializeProfile
+  } = useUserProfileStore();
+
+  // State for game mode and page navigation
   const [gameMode, setGameMode] = React.useState<'menu' | 'single' | 'multiplayer'>('menu');
+  const [currentPage, setCurrentPage] = React.useState<'game' | 'profile' | 'leaderboard' | 'shop'>('game');
 
   // Use multiplayer game state if in multiplayer mode, otherwise use single player
   const activeGameState = isMultiplayerGame ? multiplayerGameState : gameState;
@@ -48,6 +59,15 @@ const App: React.FC = () => {
       updateGameState(gameState);
     }
   }, [gameState, updateGameState, isMultiplayerGame]);
+
+  // Initialize user profile if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // For demo purposes, create a default profile
+      // In production, this would be handled by proper authentication
+      initializeProfile('Player' + Math.floor(Math.random() * 1000));
+    }
+  }, [isAuthenticated, initializeProfile]);
 
   // Handle multiplayer lobby display
   useEffect(() => {
@@ -88,6 +108,19 @@ const App: React.FC = () => {
     }
   };
 
+  // Page navigation
+  if (currentPage === 'profile') {
+    return <ProfilePage onClose={() => setCurrentPage('game')} />;
+  }
+
+  if (currentPage === 'leaderboard') {
+    return <LeaderboardPage onClose={() => setCurrentPage('game')} />;
+  }
+
+  if (currentPage === 'shop') {
+    return <ShopPage onClose={() => setCurrentPage('game')} />;
+  }
+
   // Game mode selection screen
   if (gameMode === 'menu') {
     return (
@@ -96,7 +129,7 @@ const App: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-2xl text-center"
+          className="w-full max-w-4xl text-center"
         >
           <motion.h1
             initial={{ scale: 0.8 }}
@@ -106,9 +139,33 @@ const App: React.FC = () => {
           >
             🎲 Ludo Master
           </motion.h1>
-          <p className="text-xl text-white/80 mb-12">Choose your game mode</p>
+          <p className="text-xl text-white/80 mb-8">Choose your game mode</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Player Info Bar */}
+          {profile && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="mb-8 flex items-center justify-center gap-6 bg-white/10 backdrop-blur-sm rounded-lg p-4"
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-white" />
+                <span className="text-white font-semibold">{profile.username}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                <span className="text-white font-semibold">{profile.tier}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-green-400" />
+                <span className="text-white font-semibold">{profile.coins.toLocaleString()} coins</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Game Mode Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -145,6 +202,39 @@ const App: React.FC = () => {
               </Button>
             </motion.div>
           </div>
+
+          {/* Navigation Menu */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
+            <Button
+              onClick={() => setCurrentPage('profile')}
+              variant="outline"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+            >
+              <User className="w-6 h-6" />
+              <span>Profile & Stats</span>
+            </Button>
+            <Button
+              onClick={() => setCurrentPage('leaderboard')}
+              variant="outline"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+            >
+              <Trophy className="w-6 h-6" />
+              <span>Leaderboard</span>
+            </Button>
+            <Button
+              onClick={() => setCurrentPage('shop')}
+              variant="outline"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+            >
+              <ShoppingBag className="w-6 h-6" />
+              <span>Cosmetic Shop</span>
+            </Button>
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -187,6 +277,36 @@ const App: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Navigation Buttons */}
+          <Button
+            onClick={() => setCurrentPage('profile')}
+            variant="outline"
+            size="sm"
+            className="hidden sm:flex"
+          >
+            <User className="w-4 h-4 mr-2" />
+            Profile
+          </Button>
+          <Button
+            onClick={() => setCurrentPage('leaderboard')}
+            variant="outline"
+            size="sm"
+            className="hidden sm:flex"
+          >
+            <Trophy className="w-4 h-4 mr-2" />
+            Leaderboard
+          </Button>
+          <Button
+            onClick={() => setCurrentPage('shop')}
+            variant="outline"
+            size="sm"
+            className="hidden sm:flex"
+          >
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Shop
+          </Button>
+
+          {/* Game Actions */}
           {activeGameState?.gameStatus === 'PLAYING' && (
             <>
               {!isMultiplayerGame && (

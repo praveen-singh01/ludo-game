@@ -9,28 +9,28 @@ export class GameStateManager {
     this.MAIN_PATH_LENGTH = 52;
     this.FINISH_LANE_LENGTH = 6;
     this.DICE_MAX = 6;
-    
+
     this.PLAYER_START_INDICES = {
       'RED': 1,
       'GREEN': 14,
       'YELLOW': 27,
       'BLUE': 40
     };
-    
+
     this.FINISH_LANE_ENTRY_PREDECESSORS = {
       'RED': 51,
       'GREEN': 12,
       'YELLOW': 25,
       'BLUE': 38
     };
-    
+
     this.FINISH_LANE_BASE_POSITIONS = {
       'RED': 100,
       'GREEN': 200,
       'YELLOW': 300,
       'BLUE': 400
     };
-    
+
     this.SAFE_ZONE_INDICES = [1, 9, 14, 22, 27, 35, 40, 48];
   }
 
@@ -210,6 +210,9 @@ export class GameStateManager {
       gameState.winner = currentPlayer.id;
       gameState.gameStatus = 'GAMEOVER';
       gameState.message = `${currentPlayer.name} wins!`;
+
+      // Calculate final positions and game result
+      gameState.gameResult = this.calculateGameResult(gameState);
     }
 
     // Determine if player gets extra turn (rolled 6 or captured)
@@ -310,5 +313,77 @@ export class GameStateManager {
       gameStartTime: gameState.gameStartTime,
       turnStartTime: gameState.turnStartTime
     };
+  }
+
+  // Calculate game result for ranking and rewards
+  calculateGameResult(gameState) {
+    const playerResults = gameState.players.map(player => {
+      const finishedTokens = player.tokens.filter(t => t.state === 'FINISHED').length;
+      const capturedTokens = this.calculateCapturedTokens(gameState, player.playerId);
+      const lostTokens = this.calculateLostTokens(gameState, player.playerId);
+
+      return {
+        userId: player.playerId,
+        username: player.name,
+        finishedTokens,
+        capturedTokens,
+        lostTokens,
+        score: finishedTokens * 10 + capturedTokens * 2 // Simple scoring system
+      };
+    });
+
+    // Sort by score to determine positions
+    playerResults.sort((a, b) => b.score - a.score);
+
+    // Assign positions and calculate coin rewards
+    const coinRewards = this.calculateCoinRewards(playerResults.length);
+
+    playerResults.forEach((result, index) => {
+      result.position = index + 1;
+      result.coinsEarned = coinRewards[index] || 0;
+      result.experienceEarned = this.calculateExperienceReward(result.position, playerResults.length);
+    });
+
+    return {
+      gameId: gameState.roomId + '_' + Date.now(),
+      roomId: gameState.roomId,
+      players: playerResults,
+      gameMode: 'classic',
+      duration: Math.floor((new Date() - new Date(gameState.gameStartTime)) / 1000 / 60), // in minutes
+      startTime: gameState.gameStartTime,
+      endTime: new Date().toISOString()
+    };
+  }
+
+  // Calculate coin rewards based on position and player count
+  calculateCoinRewards(playerCount) {
+    if (playerCount === 4) {
+      return [500, 250, 100, 0]; // 1st, 2nd, 3rd, 4th place
+    } else if (playerCount === 3) {
+      return [400, 200, 50]; // 1st, 2nd, 3rd place
+    } else if (playerCount === 2) {
+      return [300, 0]; // 1st, 2nd place
+    }
+    return [0];
+  }
+
+  // Calculate experience reward based on position
+  calculateExperienceReward(position, playerCount) {
+    const baseExp = 50;
+    const positionBonus = Math.max(0, (playerCount - position) * 25);
+    return baseExp + positionBonus;
+  }
+
+  // Helper methods for statistics calculation
+  calculateCapturedTokens(gameState, playerId) {
+    // This would need to be tracked during the game
+    // For now, return 0 as placeholder
+    return 0;
+  }
+
+  calculateLostTokens(gameState, playerId) {
+    // This would need to be tracked during the game
+    // For now, return 0 as placeholder
+    return 0;
   }
 }

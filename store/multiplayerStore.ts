@@ -200,9 +200,28 @@ export const useMultiplayerStore = create<MultiplayerState>()(
           set({ multiplayerGameState: gameState })
         })
 
-        socket.on('game-ended', (data) => {
-          const { gameState } = data
+        socket.on('game-ended', async (data) => {
+          const { gameState, gameResult } = data
           set({ multiplayerGameState: gameState })
+
+          // Process game result for ranking and rewards
+          if (gameResult) {
+            const { useUserProfileStore } = await import('./userProfileStore')
+            const { processGameResult } = useUserProfileStore.getState()
+
+            // Find current player's result
+            const currentPlayerResult = gameResult.players.find(
+              (p: any) => p.userId === get().playerId
+            )
+
+            if (currentPlayerResult) {
+              processGameResult(
+                currentPlayerResult.position,
+                gameResult.players.length,
+                { gameId: gameResult.gameId, roomId: gameResult.roomId }
+              )
+            }
+          }
         })
 
         // Chat events
