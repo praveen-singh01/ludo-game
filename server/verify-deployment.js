@@ -26,7 +26,19 @@ async function verifyDeployment(serverUrl) {
   console.log(`🔍 Verifying deployment at: ${serverUrl}\n`);
 
   try {
-    // Test 1: Health Check
+    // Test 1: Root Endpoint
+    log.info('Testing root endpoint...');
+    const rootResponse = await fetch(`${serverUrl}/`);
+
+    if (rootResponse.ok) {
+      const rootData = await rootResponse.json();
+      log.success(`Root endpoint working - ${rootData.message}`);
+    } else {
+      log.error(`Root endpoint failed - Status: ${rootResponse.status}`);
+      return false;
+    }
+
+    // Test 2: Health Check
     log.info('Testing health endpoint...');
     const healthResponse = await fetch(`${serverUrl}/health`);
 
@@ -39,7 +51,7 @@ async function verifyDeployment(serverUrl) {
       return false;
     }
 
-    // Test 2: Socket.IO Connection
+    // Test 3: Socket.IO Connection
     log.info('Testing Socket.IO connection...');
 
     return new Promise((resolve) => {
@@ -54,7 +66,7 @@ async function verifyDeployment(serverUrl) {
         log.success('Socket.IO connection established');
         connectionSuccess = true;
 
-        // Test 3: Room Creation
+        // Test 4: Room Creation
         log.info('Testing room creation...');
         socket.emit('create-room', {
           playerName: 'TestPlayer',
@@ -68,7 +80,7 @@ async function verifyDeployment(serverUrl) {
       socket.on('room-created', (data) => {
         log.success(`Room created successfully - Room ID: ${data.roomId}`);
 
-        // Test 4: Disconnect
+        // Test 5: Disconnect
         log.info('Testing graceful disconnection...');
         socket.disconnect();
 

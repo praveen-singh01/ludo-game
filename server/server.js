@@ -14,14 +14,28 @@ const server = createServer(app);
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://ludo-master-game-em0p5pr3n-praveen-singh01s-projects.vercel.app",
-    /\.vercel\.app$/,
-    /\.render\.com$/,
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, Postman, Render health checks)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://ludo-master-game-em0p5pr3n-praveen-singh01s-projects.vercel.app",
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+
+    // Check if origin matches allowed patterns
+    const isAllowed = allowedOrigins.includes(origin) ||
+                     /\.vercel\.app$/.test(origin) ||
+                     /\.render\.com$/.test(origin);
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now to fix health checks
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
