@@ -46,11 +46,21 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: corsOptions,
-  transports: ['websocket', 'polling'],
+  transports: ['polling', 'websocket'], // Try polling first for Render compatibility
   pingTimeout: 60000,
   pingInterval: 25000,
   upgradeTimeout: 30000,
-  allowEIO3: true
+  allowEIO3: true,
+  allowUpgrades: true,
+  cookie: false
+});
+
+console.log('🔍 Socket.IO server initialized with transports: polling, websocket');
+
+// Add Socket.IO debugging
+io.engine.on('connection_error', (err) => {
+  console.log('🚨 Socket.IO connection error:', err.req);
+  console.log('🚨 Error details:', err.code, err.message, err.context);
 });
 
 // Initialize managers
@@ -101,7 +111,7 @@ app.get('/room/:roomId', (req, res) => {
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log(`Player connected: ${socket.id}`);
+  console.log(`🔗 Player connected: ${socket.id} via ${socket.conn.transport.name}`);
 
   // Create or join room
   socket.on('create-room', (data) => {

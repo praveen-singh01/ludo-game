@@ -145,39 +145,7 @@ export const useLudoGame = () => {
   }, [calculatePathPosition]);
 
 
-  const handleAITurn = useCallback(() => {
-    const currentPlayer = getCurrentPlayer();
-    if (!currentPlayer?.isAI || gameState.gameStatus !== 'PLAYING') return;
 
-    // Clear any existing AI timeout
-    if (aiTimeoutRef.current) {
-      clearTimeout(aiTimeoutRef.current);
-    }
-
-    const difficulty = (currentPlayer as any).aiDifficulty || 'medium';
-    const delay = difficulty === 'easy' ? 2000 : difficulty === 'medium' ? 1500 : 1000;
-
-    if (!gameState.hasRolled) {
-      // AI needs to roll dice
-      aiTimeoutRef.current = setTimeout(() => {
-        rollDice();
-      }, delay + Math.random() * 500); // Add some randomness
-    } else if (gameState.availableMoves.length > 0) {
-      // AI needs to make a move
-      const bestMove = selectBestMove(
-        gameState.availableMoves,
-        gameState.players,
-        currentPlayer,
-        difficulty
-      );
-
-      if (bestMove) {
-        aiTimeoutRef.current = setTimeout(() => {
-          moveToken(bestMove.tokenId);
-        }, delay + Math.random() * 500);
-      }
-    }
-  }, [gameState, getCurrentPlayer, selectBestMove, rollDice, moveToken]);
 
   const nextTurn = useCallback((playerWhoMoved: Player | null, gainedExtraTurn: boolean) => {
     if (!playerWhoMoved && !gainedExtraTurn) { // Case where turn passes due to no moves.
@@ -388,6 +356,40 @@ export const useLudoGame = () => {
     setTimeout(() => nextTurn(playerAfterMove, gainedExtraTurn || false), 200); // Slight delay for UI
 
   }, [gameState, getCurrentPlayer, nextTurn]);
+
+  const handleAITurn = useCallback(() => {
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer?.isAI || gameState.gameStatus !== 'PLAYING') return;
+
+    // Clear any existing AI timeout
+    if (aiTimeoutRef.current) {
+      clearTimeout(aiTimeoutRef.current);
+    }
+
+    const difficulty = (currentPlayer as any).aiDifficulty || 'medium';
+    const delay = difficulty === 'easy' ? 2000 : difficulty === 'medium' ? 1500 : 1000;
+
+    if (!gameState.hasRolled) {
+      // AI needs to roll dice
+      aiTimeoutRef.current = setTimeout(() => {
+        rollDice();
+      }, delay + Math.random() * 500); // Add some randomness
+    } else if (gameState.availableMoves.length > 0) {
+      // AI needs to make a move
+      const bestMove = selectBestMove(
+        gameState.availableMoves,
+        gameState.players,
+        currentPlayer,
+        difficulty
+      );
+
+      if (bestMove) {
+        aiTimeoutRef.current = setTimeout(() => {
+          moveToken(bestMove.tokenId);
+        }, delay + Math.random() * 500);
+      }
+    }
+  }, [gameState, getCurrentPlayer, selectBestMove, rollDice, moveToken]);
 
   // Handle AI turns
   useEffect(() => {
