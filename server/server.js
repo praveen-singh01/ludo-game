@@ -340,6 +340,6 @@ process.on('SIGTERM', () => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Ludo Master multiplayer server running on port ${PORT}`);
   console.log(`🌐 Environment: ${NODE_ENV}`);
-  console.log(`🔗 CORS enabled for: ${corsOptions.origin.filter(o => typeof o === 'string').join(', ')}`);
+  console.log(`🔗 CORS enabled with dynamic origin validation`);
   console.log(`📊 Health check available at: /health`);
 });
