@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Player, Token, GameState, PlayerColor, TokenState } from '../types';
 import TokenIcon from './TokenIcon';
 import { cn } from '../lib/utils';
+import { getBoardThemeConfig } from '../constants/cosmetics';
+import { useUserProfileStore } from '../store/userProfileStore';
 import {
     PLAYER_SETUP_CONFIG,
     BOARD_GRID_MAPPING,
@@ -30,7 +32,12 @@ interface GameBoardProps {
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableMoves }) => {
+  const { profile } = useUserProfileStore();
   const allTokens = players.flatMap(p => p.tokens);
+
+  // Get equipped board theme
+  const equippedBoardTheme = profile?.equippedCosmetics?.boardTheme || 'classic';
+  const boardThemeConfig = getBoardThemeConfig(equippedBoardTheme);
 
   const renderTokensInCell = (tokensOnCell: Token[]) => {
     const count = tokensOnCell.length;
@@ -103,7 +110,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableM
                 className={cn(
                     "home-yard-cell flex items-center justify-center",
                     "border-2 border-dashed border-gray-400 rounded-full",
-                    "bg-white/60 backdrop-blur-sm shadow-inner",
+                    boardThemeConfig?.homeColor || "bg-white/60",
+                    "backdrop-blur-sm shadow-inner",
                     "hover:bg-white/80 transition-all duration-200"
                 )}
                 style={{
@@ -134,8 +142,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableM
 
     const isStart = Object.values(PLAYER_START_INDICES).includes(i);
     const isSafe = SAFE_ZONE_INDICES.includes(i);
-    let cellBgColor = (i % 2 === 0) ? 'bg-stone-100' : 'bg-stone-200'; // Subtler neutral path
-    let cellBorderColor = 'border-stone-400';
+    let cellBgColor = boardThemeConfig?.pathColor || ((i % 2 === 0) ? 'bg-stone-100' : 'bg-stone-200');
+    let cellBorderColor = boardThemeConfig?.borderColor || 'border-stone-400';
 
     let playerPathColor: string | undefined = undefined;
     let playerStartIndicatorColor: string | undefined = undefined;
@@ -157,8 +165,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableM
         cellBorderColor = PLAYER_SETUP_CONFIG[Object.keys(PLAYER_SETUP_CONFIG).find(pc => PLAYER_SETUP_CONFIG[pc as PlayerColor].pathColor === playerPathColor) as PlayerColor].darkColor.replace('bg-','border-');
     }
     if (isSafe && !playerPathColor) {
-        cellBgColor = 'bg-amber-200'; // Warmer safe zone color
-        cellBorderColor = 'border-amber-400';
+        cellBgColor = boardThemeConfig?.safeZoneColor || 'bg-amber-200';
+        cellBorderColor = boardThemeConfig?.borderColor || 'border-amber-400';
     }
 
 
@@ -299,7 +307,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableM
    boardCellsRender.push(
     <motion.div
         key="center-target-square"
-        className="bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center shadow-2xl border-4 border-yellow-600 rounded-lg relative overflow-hidden"
+        className={cn(
+          "flex items-center justify-center shadow-2xl border-4 border-yellow-600 rounded-lg relative overflow-hidden",
+          boardThemeConfig?.centerColor || "bg-gradient-to-br from-yellow-300 to-yellow-500"
+        )}
         style={{
             gridColumnStart: centerCol + 1,
             gridRowStart: centerRow + 1,
@@ -367,10 +378,15 @@ const GameBoard: React.FC<GameBoardProps> = ({ players, onTokenClick, availableM
       <div className="absolute inset-2 rounded-xl bg-gradient-to-br from-yellow-100/20 to-transparent pointer-events-none" />
 
       <motion.div
-        className="ludo-grid-container w-full h-full grid grid-cols-15 grid-rows-15 gap-0.5 rounded-xl overflow-hidden relative"
+        className={cn(
+          "ludo-grid-container w-full h-full grid grid-cols-15 grid-rows-15 gap-0.5 rounded-xl overflow-hidden relative",
+          boardThemeConfig?.backgroundColor || "bg-gradient-to-br from-amber-100 to-amber-200"
+        )}
         style={{
-          background: 'linear-gradient(145deg, #deb887, #d2b48c)',
-          border: '3px solid #8B4513',
+          background: boardThemeConfig?.backgroundColor?.includes('gradient')
+            ? undefined
+            : 'linear-gradient(145deg, #deb887, #d2b48c)',
+          border: `3px solid ${boardThemeConfig?.borderColor?.replace('border-', '') || '#8B4513'}`,
           boxShadow: 'inset 0 0 20px rgba(0,0,0,0.1)'
         }}
         initial={{ opacity: 0 }}

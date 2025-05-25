@@ -275,35 +275,79 @@ export const COSMETIC_ITEMS = {
     }
   ],
   AVATARS: [
+    // Male Avatars
     {
-      id: 'knight_avatar',
-      name: 'Noble Knight',
-      description: 'Brave knight avatar',
+      id: 'male_knight',
+      name: 'Knight Commander',
+      description: 'Brave male knight with royal armor',
       type: CosmeticType.AVATAR,
       rarity: 'RARE',
       price: 1200,
       isPremium: false,
-      previewImage: '/cosmetics/avatars/knight.png'
+      previewImage: '/cosmetics/avatars/male_knight.png',
+      gender: 'male',
+      emoji: '🛡️👨'
     },
     {
-      id: 'wizard_avatar',
-      name: 'Wise Wizard',
-      description: 'Mystical wizard avatar',
+      id: 'male_wizard',
+      name: 'Archmage',
+      description: 'Powerful male wizard with ancient magic',
       type: CosmeticType.AVATAR,
       rarity: 'EPIC',
       price: 2200,
       isPremium: false,
-      previewImage: '/cosmetics/avatars/wizard.png'
+      previewImage: '/cosmetics/avatars/male_wizard.png',
+      gender: 'male',
+      emoji: '🧙‍♂️'
     },
     {
-      id: 'dragon_avatar',
-      name: 'Mighty Dragon',
-      description: 'Powerful dragon avatar',
+      id: 'male_warrior',
+      name: 'Dragon Slayer',
+      description: 'Legendary male warrior with battle scars',
       type: CosmeticType.AVATAR,
       rarity: 'LEGENDARY',
       price: 4500,
       isPremium: false,
-      previewImage: '/cosmetics/avatars/dragon.png'
+      previewImage: '/cosmetics/avatars/male_warrior.png',
+      gender: 'male',
+      emoji: '⚔️👨'
+    },
+    // Female Avatars
+    {
+      id: 'female_knight',
+      name: 'Paladin Princess',
+      description: 'Noble female knight with divine blessing',
+      type: CosmeticType.AVATAR,
+      rarity: 'RARE',
+      price: 1200,
+      isPremium: false,
+      previewImage: '/cosmetics/avatars/female_knight.png',
+      gender: 'female',
+      emoji: '🛡️👩'
+    },
+    {
+      id: 'female_mage',
+      name: 'Sorceress Supreme',
+      description: 'Mystical female mage with elemental powers',
+      type: CosmeticType.AVATAR,
+      rarity: 'EPIC',
+      price: 2200,
+      isPremium: false,
+      previewImage: '/cosmetics/avatars/female_mage.png',
+      gender: 'female',
+      emoji: '🧙‍♀️'
+    },
+    {
+      id: 'female_assassin',
+      name: 'Shadow Empress',
+      description: 'Legendary female assassin with deadly precision',
+      type: CosmeticType.AVATAR,
+      rarity: 'LEGENDARY',
+      price: 4500,
+      isPremium: false,
+      previewImage: '/cosmetics/avatars/female_assassin.png',
+      gender: 'female',
+      emoji: '🗡️👩'
     }
   ]
 }

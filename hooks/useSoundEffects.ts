@@ -1,19 +1,35 @@
 import { useCallback, useRef } from 'react';
-import { useGameStore } from '../store/gameStore';
+import { useUserProfileStore } from '../store/userProfileStore';
+import {
+  AUDIO_SETTINGS,
+  AudioConfig,
+  AudioSequence,
+  SequenceStep,
+  getAudioConfig,
+  getAudioSequence
+} from '../constants/audio';
 
-type SoundEffect = 
+type SoundEffect =
   | 'dice-roll'
+  | 'dice-roll-sequence'
   | 'token-move'
+  | 'token-move-sequence'
   | 'token-capture'
+  | 'token-capture-sequence'
   | 'token-finish'
+  | 'token-home-entry'
+  | 'home-entry-celebration'
   | 'game-win'
+  | 'victory-celebration'
   | 'button-click'
-  | 'error'
-  | 'notification';
+  | 'button-hover'
+  | 'turn-notification'
+  | 'error';
 
 export const useSoundEffects = () => {
-  const { settings } = useGameStore();
+  const { profile } = useUserProfileStore();
   const audioContextRef = useRef<AudioContext | null>(null);
+  const activeOscillatorsRef = useRef<Set<OscillatorNode>>(new Set());
 
   const initAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -22,7 +38,18 @@ export const useSoundEffects = () => {
     return audioContextRef.current;
   }, []);
 
-  const createTone = useCallback((frequency: number, duration: number, type: OscillatorType = 'sine') => {
+  // Enhanced tone creation with volume control and cleanup
+  const createTone = useCallback((
+    frequency: number,
+    duration: number,
+    type: OscillatorType = 'sine',
+    volume: number = 0.1,
+    delay: number = 0,
+    fadeIn: number = 0.01,
+    fadeOut?: number
+  ) => {
+    if (!profile?.settings?.soundEnabled) return null;
+
     const audioContext = initAudioContext();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -30,160 +57,238 @@ export const useSoundEffects = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + delay);
     oscillator.type = type;
 
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+    const masterVolume = AUDIO_SETTINGS.MASTER_VOLUME;
+    const effectiveVolume = volume * masterVolume;
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + duration);
+    // Enhanced envelope with configurable fade
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay);
+    gainNode.gain.linearRampToValueAtTime(effectiveVolume, audioContext.currentTime + delay + fadeIn);
 
-    return oscillator;
-  }, [initAudioContext]);
-
-  const createChord = useCallback((frequencies: number[], duration: number) => {
-    return frequencies.map(freq => createTone(freq, duration));
-  }, [createTone]);
-
-  const playDiceRoll = useCallback(() => {
-    if (!settings.soundEnabled) return;
-
-    // Simulate dice rolling with rapid frequency changes
-    const audioContext = initAudioContext();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.type = 'square';
-    
-    // Create a rolling sound effect
-    const startTime = audioContext.currentTime;
-    const duration = 0.6;
-    
-    for (let i = 0; i < 20; i++) {
-      const time = startTime + (i * duration / 20);
-      const frequency = 200 + Math.random() * 400;
-      oscillator.frequency.setValueAtTime(frequency, time);
+    if (fadeOut) {
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + delay + duration - fadeOut);
+    } else {
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + delay + duration);
     }
 
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.05, startTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    oscillator.start(audioContext.currentTime + delay);
+    oscillator.stop(audioContext.currentTime + delay + duration);
 
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration);
-  }, [settings.soundEnabled, initAudioContext]);
+    // Track active oscillators for cleanup
+    activeOscillatorsRef.current.add(oscillator);
+    oscillator.onended = () => {
+      activeOscillatorsRef.current.delete(oscillator);
+    };
 
-  const playTokenMove = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Pleasant ascending tone for token movement
-    createTone(440, 0.2, 'sine');
-    setTimeout(() => createTone(550, 0.15, 'sine'), 100);
-  }, [settings.soundEnabled, createTone]);
+    return oscillator;
+  }, [initAudioContext, profile?.settings?.soundEnabled]);
 
-  const playTokenCapture = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Dramatic descending tone for captures
-    createTone(800, 0.1, 'sawtooth');
-    setTimeout(() => createTone(400, 0.2, 'sawtooth'), 100);
-    setTimeout(() => createTone(200, 0.3, 'sawtooth'), 200);
-  }, [settings.soundEnabled, createTone]);
+  // Play audio sequence with timing
+  const playAudioSequence = useCallback((sequence: AudioSequence) => {
+    if (!profile?.settings?.soundEnabled) return;
 
-  const playTokenFinish = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Triumphant chord progression
-    const chord1 = [261.63, 329.63, 392.00]; // C major
-    const chord2 = [293.66, 369.99, 440.00]; // D major
-    const chord3 = [329.63, 415.30, 493.88]; // E major
-    
-    createChord(chord1, 0.3);
-    setTimeout(() => createChord(chord2, 0.3), 200);
-    setTimeout(() => createChord(chord3, 0.5), 400);
-  }, [settings.soundEnabled, createChord]);
-
-  const playGameWin = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Victory fanfare
-    const melody = [
-      { freq: 523.25, duration: 0.2 }, // C5
-      { freq: 659.25, duration: 0.2 }, // E5
-      { freq: 783.99, duration: 0.2 }, // G5
-      { freq: 1046.50, duration: 0.4 }, // C6
-      { freq: 783.99, duration: 0.2 }, // G5
-      { freq: 1046.50, duration: 0.6 }, // C6
-    ];
-
-    melody.forEach((note, index) => {
-      setTimeout(() => {
-        createTone(note.freq, note.duration, 'triangle');
-      }, index * 150);
+    sequence.steps.forEach((step: SequenceStep) => {
+      createTone(
+        step.frequency,
+        step.duration,
+        step.type || 'sine',
+        step.volume || 0.2,
+        step.delay || 0
+      );
     });
-  }, [settings.soundEnabled, createTone]);
+  }, [createTone, profile?.settings?.soundEnabled]);
 
+  // Play single audio config
+  const playAudioConfig = useCallback((config: AudioConfig) => {
+    if (!profile?.settings?.soundEnabled) return;
+
+    createTone(
+      config.frequency,
+      config.duration,
+      config.type,
+      config.volume,
+      0,
+      config.fadeIn,
+      config.fadeOut
+    );
+  }, [createTone, profile?.settings?.soundEnabled]);
+
+  // Stop all active sounds
+  const stopAllSounds = useCallback(() => {
+    activeOscillatorsRef.current.forEach(oscillator => {
+      try {
+        oscillator.stop();
+      } catch (e) {
+        // Oscillator might already be stopped
+      }
+    });
+    activeOscillatorsRef.current.clear();
+  }, []);
+
+  // Enhanced dice roll with realistic bouncing sequence
+  const playDiceRoll = useCallback(() => {
+    const sequence = getAudioSequence('DICE_ROLL_SEQUENCE');
+    if (sequence) {
+      playAudioSequence(sequence);
+    }
+  }, [playAudioSequence]);
+
+  // Single dice roll sound
+  const playDiceRollSimple = useCallback(() => {
+    const config = getAudioConfig('dice_roll_start');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
+
+  // Enhanced token movement sounds
+  const playTokenMove = useCallback((isInSafeZone: boolean = false) => {
+    const configId = isInSafeZone ? 'token_step_safe' : 'token_step';
+    const config = getAudioConfig(configId);
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
+
+  // Token movement sequence for multiple steps
+  const playTokenMoveSequence = useCallback((steps: number) => {
+    for (let i = 0; i < steps; i++) {
+      setTimeout(() => {
+        playTokenMove();
+      }, i * 150); // 150ms between each step
+    }
+  }, [playTokenMove]);
+
+  // Enhanced token capture with dramatic sequence
+  const playTokenCapture = useCallback(() => {
+    const sequence = getAudioSequence('TOKEN_CAPTURE_SEQUENCE');
+    if (sequence) {
+      playAudioSequence(sequence);
+    }
+  }, [playAudioSequence]);
+
+  // Token home entry celebration
+  const playTokenHomeEntry = useCallback(() => {
+    const sequence = getAudioSequence('HOME_ENTRY_CELEBRATION');
+    if (sequence) {
+      playAudioSequence(sequence);
+    }
+  }, [playAudioSequence]);
+
+  // Token finish sound
+  const playTokenFinish = useCallback(() => {
+    const config = getAudioConfig('token_finish');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
+
+  // Victory celebration with full sequence
+  const playGameWin = useCallback(() => {
+    const sequence = getAudioSequence('VICTORY_CELEBRATION');
+    if (sequence) {
+      playAudioSequence(sequence);
+    }
+  }, [playAudioSequence]);
+
+  // UI interaction sounds
   const playButtonClick = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Subtle click sound
-    createTone(800, 0.05, 'square');
-  }, [settings.soundEnabled, createTone]);
+    const config = getAudioConfig('button_click');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
+
+  const playButtonHover = useCallback(() => {
+    const config = getAudioConfig('button_hover');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
+
+  // Notification and error sounds
+  const playTurnNotification = useCallback(() => {
+    const config = getAudioConfig('turn_notification');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
 
   const playError = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Error buzz
-    createTone(150, 0.3, 'sawtooth');
-  }, [settings.soundEnabled, createTone]);
+    const config = getAudioConfig('error_sound');
+    if (config) {
+      playAudioConfig(config);
+    }
+  }, [playAudioConfig]);
 
+  // Legacy notification function
   const playNotification = useCallback(() => {
-    if (!settings.soundEnabled) return;
-    
-    // Gentle notification chime
-    createTone(880, 0.2, 'sine');
-    setTimeout(() => createTone(1108, 0.3, 'sine'), 100);
-  }, [settings.soundEnabled, createTone]);
+    playTurnNotification();
+  }, [playTurnNotification]);
 
-  const playSound = useCallback((effect: SoundEffect) => {
+  const playSound = useCallback((effect: SoundEffect, options?: { steps?: number; isInSafeZone?: boolean }) => {
     switch (effect) {
       case 'dice-roll':
         playDiceRoll();
         break;
+      case 'dice-roll-sequence':
+        playDiceRoll();
+        break;
       case 'token-move':
-        playTokenMove();
+        playTokenMove(options?.isInSafeZone);
+        break;
+      case 'token-move-sequence':
+        playTokenMoveSequence(options?.steps || 1);
         break;
       case 'token-capture':
+        playTokenCapture();
+        break;
+      case 'token-capture-sequence':
         playTokenCapture();
         break;
       case 'token-finish':
         playTokenFinish();
         break;
+      case 'token-home-entry':
+        playTokenHomeEntry();
+        break;
+      case 'home-entry-celebration':
+        playTokenHomeEntry();
+        break;
       case 'game-win':
+        playGameWin();
+        break;
+      case 'victory-celebration':
         playGameWin();
         break;
       case 'button-click':
         playButtonClick();
         break;
+      case 'button-hover':
+        playButtonHover();
+        break;
+      case 'turn-notification':
+        playTurnNotification();
+        break;
       case 'error':
         playError();
         break;
-      case 'notification':
-        playNotification();
-        break;
+      default:
+        console.warn(`Unknown sound effect: ${effect}`);
     }
   }, [
     playDiceRoll,
     playTokenMove,
+    playTokenMoveSequence,
     playTokenCapture,
     playTokenFinish,
+    playTokenHomeEntry,
     playGameWin,
     playButtonClick,
+    playButtonHover,
+    playTurnNotification,
     playError,
     playNotification
   ]);
@@ -191,12 +296,20 @@ export const useSoundEffects = () => {
   return {
     playSound,
     playDiceRoll,
+    playDiceRollSimple,
     playTokenMove,
+    playTokenMoveSequence,
     playTokenCapture,
     playTokenFinish,
+    playTokenHomeEntry,
     playGameWin,
     playButtonClick,
+    playButtonHover,
+    playTurnNotification,
     playError,
-    playNotification
+    playNotification,
+    stopAllSounds,
+    playAudioSequence,
+    playAudioConfig
   };
 };

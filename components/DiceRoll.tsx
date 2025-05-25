@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, RotateCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { getDiceDesignConfig } from '../constants/cosmetics';
+import { useUserProfileStore } from '../store/userProfileStore';
+import { useSoundEffects } from '../hooks/useSoundEffects';
 import { cn } from '../lib/utils';
 
 interface DiceRollProps {
@@ -19,6 +22,12 @@ const DiceIcon: React.FC<{ value: number; className?: string }> = ({ value, clas
 };
 
 const DiceFace: React.FC<{ value: number; isRolling?: boolean }> = ({ value, isRolling = false }) => {
+  const { profile } = useUserProfileStore();
+
+  // Get equipped dice design
+  const equippedDiceDesign = profile?.equippedCosmetics?.diceDesign || 'standard';
+  const diceConfig = getDiceDesignConfig(equippedDiceDesign);
+
   const dotPositions: { [key: number]: number[] } = {
     1: [4], // Center
     2: [0, 8], // Top-left, Bottom-right
@@ -33,7 +42,12 @@ const DiceFace: React.FC<{ value: number; isRolling?: boolean }> = ({ value, isR
   return (
     <motion.div
       className={cn(
-        "w-24 h-24 bg-white border-3 border-gray-800 rounded-2xl p-3 grid grid-cols-3 grid-rows-3 gap-1 shadow-2xl",
+        "w-24 h-24 rounded-2xl p-3 grid grid-cols-3 grid-rows-3 gap-1",
+        diceConfig?.backgroundColor || "bg-white",
+        diceConfig?.borderColor || "border-gray-800",
+        diceConfig?.shadow || "shadow-2xl",
+        diceConfig?.animation,
+        "border-3",
         isRolling && "animate-dice-roll"
       )}
       animate={isRolling ? {
@@ -46,10 +60,14 @@ const DiceFace: React.FC<{ value: number; isRolling?: boolean }> = ({ value, isR
         ease: "easeInOut"
       }}
       style={{
-        background: 'linear-gradient(145deg, #ffffff, #f0f0f0)',
+        background: diceConfig?.backgroundColor?.includes('gradient')
+          ? undefined
+          : 'linear-gradient(145deg, #ffffff, #f0f0f0)',
         boxShadow: isRolling
           ? '0 10px 30px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.8)'
-          : '0 8px 20px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.8)'
+          : diceConfig?.shadow?.includes('shadow')
+            ? undefined // Let CSS handle the shadow
+            : '0 8px 20px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.8)'
       }}
     >
       <AnimatePresence>
@@ -61,9 +79,14 @@ const DiceFace: React.FC<{ value: number; isRolling?: boolean }> = ({ value, isR
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ delay: i * 0.05, duration: 0.2 }}
-                className="w-3 h-3 bg-gray-800 rounded-full shadow-inner"
+                className={cn(
+                  "w-3 h-3 rounded-full shadow-inner",
+                  diceConfig?.dotColor || "bg-gray-800"
+                )}
                 style={{
-                  background: 'radial-gradient(circle at 30% 30%, #4a4a4a, #1a1a1a)',
+                  background: diceConfig?.dotColor?.includes('text')
+                    ? undefined
+                    : 'radial-gradient(circle at 30% 30%, #4a4a4a, #1a1a1a)',
                 }}
               />
             )}
@@ -78,12 +101,16 @@ const DiceFace: React.FC<{ value: number; isRolling?: boolean }> = ({ value, isR
 const DiceRoll: React.FC<DiceRollProps> = ({ diceValue, onRoll, canRoll, currentPlayerName }) => {
   const [isRolling, setIsRolling] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const { playSound } = useSoundEffects();
 
   const handleRoll = async () => {
     if (!canRoll) return;
 
     setIsRolling(true);
     setShowResult(false);
+
+    // Play dice roll sound sequence
+    playSound('dice-roll-sequence');
 
     // Simulate rolling animation duration
     setTimeout(() => {

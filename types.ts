@@ -30,6 +30,7 @@ export interface Player {
   name: string;
   tokens: Token[];
   isAI?: boolean;
+  aiDifficulty?: 'easy' | 'medium' | 'hard';
   playerId?: string; // For multiplayer
 }
 
@@ -299,6 +300,8 @@ export interface CosmeticItem {
   isPremium: boolean;
   previewImage: string;
   unlockRequirement?: string;
+  gender?: 'male' | 'female';
+  emoji?: string;
 }
 
 // Equipped cosmetics
@@ -324,6 +327,10 @@ export interface FriendRequest {
 export interface UserSettings {
   soundEnabled: boolean;
   musicEnabled: boolean;
+  masterVolume?: number;
+  soundEffectsVolume?: number;
+  musicVolume?: number;
+  notificationsVolume?: number;
   notificationsEnabled: boolean;
   autoAcceptFriendRequests: boolean;
   showOnlineStatus: boolean;
@@ -504,6 +511,8 @@ export interface BattlePass {
   season: number;
   name: string;
   description: string;
+  theme?: string;
+  colors?: string[];
   startDate: string;
   endDate: string;
   maxLevel: number;
@@ -518,6 +527,8 @@ export interface BattlePassReward {
   type: 'COINS' | 'COSMETIC' | 'ACHIEVEMENT';
   itemId: string;
   quantity: number;
+  name?: string;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 // User battle pass progress

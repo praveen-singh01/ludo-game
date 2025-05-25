@@ -12,11 +12,16 @@ import {
   UserSettings,
   EquippedCosmetics
 } from '../types'
+import { DAILY_CHALLENGE_TEMPLATES } from '../constants/rewards'
 
 // Default user settings
 const defaultSettings: UserSettings = {
   soundEnabled: true,
   musicEnabled: true,
+  masterVolume: 0.7,
+  soundEffectsVolume: 0.8,
+  musicVolume: 0.5,
+  notificationsVolume: 0.6,
   notificationsEnabled: true,
   autoAcceptFriendRequests: false,
   showOnlineStatus: true,
@@ -150,13 +155,14 @@ export const useUserProfileStore = create<UserProfileState>()(
       friends: [],
 
       // Initialize user profile
-      initializeProfile: (username: string, email?: string) => {
+      initializeProfile: (username: string, email?: string, selectedAvatar?: string) => {
         const now = new Date().toISOString()
+        const avatarId = selectedAvatar || 'default'
         const profile: UserProfile = {
           id: `user_${Date.now()}`,
           username,
           email,
-          avatar: 'default',
+          avatar: avatarId,
           createdAt: now,
           lastLoginAt: now,
           isOnline: true,
@@ -168,8 +174,11 @@ export const useUserProfileStore = create<UserProfileState>()(
           stats: { ...defaultStats },
           friends: [],
           friendRequests: [],
-          ownedCosmetics: ['default_token', 'classic_board', 'standard_dice', 'default_avatar'],
-          equippedCosmetics: { ...defaultEquippedCosmetics },
+          ownedCosmetics: ['default_token', 'classic_board', 'standard_dice', 'default', 'male_knight', 'female_knight'],
+          equippedCosmetics: {
+            ...defaultEquippedCosmetics,
+            avatar: avatarId
+          },
           achievements: [],
           settings: { ...defaultSettings }
         }
@@ -361,6 +370,22 @@ export const useUserProfileStore = create<UserProfileState>()(
 
         // Check for achievements
         get().checkAchievements()
+
+        // Update daily challenge progress
+        const today = new Date().toISOString().split('T')[0]
+        const activeChallenges = get().dailyChallenges.filter(c =>
+          c.expiresAt.startsWith(today) && !c.completed
+        )
+
+        activeChallenges.forEach(challenge => {
+          if (challenge.type === 'PLAY_GAMES') {
+            get().updateDailyChallengeProgress(challenge.id, challenge.progress + 1)
+          } else if (challenge.type === 'WIN_GAMES' && isWin) {
+            get().updateDailyChallengeProgress(challenge.id, challenge.progress + 1)
+          } else if (challenge.type === 'EARN_COINS' && coinsEarned > 0) {
+            get().updateDailyChallengeProgress(challenge.id, challenge.progress + coinsEarned)
+          }
+        })
       },
 
       // Placeholder implementations for other methods
@@ -372,32 +397,175 @@ export const useUserProfileStore = create<UserProfileState>()(
         // TODO: Implement achievement unlocking
       },
 
-      updateDailyChallengeProgress: (_challengeId: string, _progress: number) => {
-        // TODO: Implement daily challenge progress update
+      updateDailyChallengeProgress: (challengeId: string, progress: number) => {
+        set((state) => ({
+          dailyChallenges: state.dailyChallenges.map(challenge => {
+            if (challenge.id === challengeId) {
+              const newProgress = Math.min(progress, challenge.target)
+              const completed = newProgress >= challenge.target
+              return {
+                ...challenge,
+                progress: newProgress,
+                completed
+              }
+            }
+            return challenge
+          })
+        }))
       },
 
-      claimDailyChallenge: (_challengeId: string) => {
-        // TODO: Implement daily challenge claiming
+      claimDailyChallenge: (challengeId: string) => {
+        const challenge = get().dailyChallenges.find(c => c.id === challengeId)
+        if (!challenge || !challenge.completed || challenge.claimedAt) return
+
+        // Add rewards
+        get().addCoins(challenge.coinReward, 'DAILY_CHALLENGE', `Completed: ${challenge.name}`)
+
+        // Mark as claimed
+        set((state) => ({
+          dailyChallenges: state.dailyChallenges.map(c =>
+            c.id === challengeId
+              ? { ...c, claimedAt: new Date().toISOString() }
+              : c
+          )
+        }))
       },
 
       generateDailyChallenges: () => {
-        // TODO: Implement daily challenge generation
+        const { profile } = get()
+        if (!profile) return
+
+        const now = new Date()
+        const today = now.toISOString().split('T')[0]
+
+        // Check if challenges already exist for today
+        const existingChallenges = get().dailyChallenges.filter(
+          challenge => challenge.expiresAt.startsWith(today)
+        )
+
+        if (existingChallenges.length > 0) return
+
+        // Generate 3 random daily challenges
+        const templates = Object.values(DAILY_CHALLENGE_TEMPLATES)
+        const selectedTemplates = templates
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+
+        const newChallenges: DailyChallenge[] = selectedTemplates.map((template, index) => {
+          const target = template.targets[Math.floor(Math.random() * template.targets.length)]
+          const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+
+          return {
+            id: `daily_${today}_${index}`,
+            name: template.name,
+            description: template.description.replace('{target}', target.toString()),
+            type: template.type as DailyChallenge['type'],
+            target,
+            progress: 0,
+            coinReward: template.coinReward,
+            experienceReward: template.experienceReward,
+            expiresAt,
+            completed: false
+          }
+        })
+
+        set((state) => ({
+          dailyChallenges: [...state.dailyChallenges.filter(c => !c.expiresAt.startsWith(today)), ...newChallenges]
+        }))
       },
 
-      sendFriendRequest: (_username: string) => {
-        // TODO: Implement friend request sending
+      sendFriendRequest: (username: string) => {
+        const { profile } = get()
+        if (!profile) return
+
+        // In a real app, this would send a request to the server
+        // For now, we'll simulate finding the user and creating a request
+        const requestId = `req_${Date.now()}`
+        const mockTargetUserId = `user_${username.toLowerCase()}`
+
+        const friendRequest: FriendRequest = {
+          id: requestId,
+          fromUserId: profile.id,
+          fromUsername: profile.username,
+          toUserId: mockTargetUserId,
+          status: 'PENDING',
+          createdAt: new Date().toISOString()
+        }
+
+        set((state) => ({
+          friendRequests: [...state.friendRequests, friendRequest]
+        }))
       },
 
-      acceptFriendRequest: (_requestId: string) => {
-        // TODO: Implement friend request acceptance
+      acceptFriendRequest: (requestId: string) => {
+        const { profile } = get()
+        if (!profile) return
+
+        const request = get().friendRequests.find(r => r.id === requestId)
+        if (!request || request.status !== 'PENDING') return
+
+        // Create mock friend profile
+        const friendProfile: UserProfile = {
+          id: request.fromUserId,
+          username: request.fromUsername,
+          avatar: 'default',
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          isOnline: Math.random() > 0.5, // Random online status
+          coins: Math.floor(Math.random() * 10000) + 1000,
+          totalCoinsEarned: Math.floor(Math.random() * 15000) + 2000,
+          rank: Math.floor(Math.random() * 1000) + 1,
+          tier: Object.values(RankTier)[Math.floor(Math.random() * Object.values(RankTier).length)],
+          experience: Math.floor(Math.random() * 5000),
+          stats: { ...defaultStats },
+          friends: [],
+          friendRequests: [],
+          ownedCosmetics: ['default_token', 'classic_board', 'standard_dice', 'default'],
+          equippedCosmetics: { ...defaultEquippedCosmetics },
+          achievements: [],
+          settings: { ...defaultSettings }
+        }
+
+        // Update friend request status and add friend
+        set((state) => ({
+          friendRequests: state.friendRequests.map(r =>
+            r.id === requestId ? { ...r, status: 'ACCEPTED' as const } : r
+          ),
+          friends: [...state.friends, friendProfile],
+          profile: state.profile ? {
+            ...state.profile,
+            friends: [...state.profile.friends, request.fromUserId],
+            stats: {
+              ...state.profile.stats,
+              friendsCount: state.profile.stats.friendsCount + 1
+            }
+          } : null
+        }))
       },
 
-      declineFriendRequest: (_requestId: string) => {
-        // TODO: Implement friend request declining
+      declineFriendRequest: (requestId: string) => {
+        set((state) => ({
+          friendRequests: state.friendRequests.map(r =>
+            r.id === requestId ? { ...r, status: 'DECLINED' as const } : r
+          )
+        }))
       },
 
-      removeFriend: (_userId: string) => {
-        // TODO: Implement friend removal
+      removeFriend: (userId: string) => {
+        const { profile } = get()
+        if (!profile) return
+
+        set((state) => ({
+          friends: state.friends.filter(f => f.id !== userId),
+          profile: state.profile ? {
+            ...state.profile,
+            friends: state.profile.friends.filter(id => id !== userId),
+            stats: {
+              ...state.profile.stats,
+              friendsCount: Math.max(0, state.profile.stats.friendsCount - 1)
+            }
+          } : null
+        }))
       },
 
       updateLeaderboard: () => {

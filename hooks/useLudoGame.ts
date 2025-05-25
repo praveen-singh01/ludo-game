@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, Player, PlayerColor, Token, TokenState } from '../types';
 import {
   PLAYER_COLORS_LIST,
@@ -14,6 +14,9 @@ import {
   SAFE_ZONE_INDICES,
   DICE_MAX,
 } from '../constants';
+import { useAI, AIDifficulty } from './useAI';
+import { useBattlePassStore } from '../store/battlePassStore';
+import { useUserProfileStore } from '../store/userProfileStore';
 
 const createInitialTokens = (color: PlayerColor): Token[] => {
   return Array.from({ length: TOKENS_PER_PLAYER }, (_, i) => ({
@@ -36,17 +39,36 @@ export const useLudoGame = () => {
     availableMoves: [],
   });
 
-  const initializeGame = useCallback((numPlayers: number) => {
+  const { selectBestMove } = useAI();
+  const { addExperience } = useBattlePassStore();
+  const { addCoins } = useUserProfileStore();
+  const aiTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const initializeGame = useCallback((
+    numPlayers: number,
+    aiPlayers: { playerIndex: number; difficulty: AIDifficulty }[] = []
+  ) => {
     if (numPlayers < 2 || numPlayers > 4) {
       setGameState(prev => ({ ...prev, message: "Number of players must be between 2 and 4."}));
       return;
     }
-    const players: Player[] = PLAYER_COLORS_LIST.slice(0, numPlayers).map(color => ({
-      id: color,
-      name: color.charAt(0) + color.slice(1).toLowerCase(),
-      tokens: createInitialTokens(color),
-      isAI: false,
-    }));
+
+    const players: Player[] = PLAYER_COLORS_LIST.slice(0, numPlayers).map((color, index) => {
+      const aiConfig = aiPlayers.find(ai => ai.playerIndex === index);
+      const isAI = !!aiConfig;
+      const difficulty = aiConfig?.difficulty || 'medium';
+
+      return {
+        id: color,
+        name: isAI
+          ? `AI ${color.charAt(0) + color.slice(1).toLowerCase()} (${difficulty})`
+          : color.charAt(0) + color.slice(1).toLowerCase(),
+        tokens: createInitialTokens(color),
+        isAI,
+        aiDifficulty: isAI ? difficulty : undefined,
+      };
+    });
+
     setGameState({
       players,
       currentPlayerIndex: 0,
@@ -123,6 +145,40 @@ export const useLudoGame = () => {
   }, [calculatePathPosition]);
 
 
+  const handleAITurn = useCallback(() => {
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer?.isAI || gameState.gameStatus !== 'PLAYING') return;
+
+    // Clear any existing AI timeout
+    if (aiTimeoutRef.current) {
+      clearTimeout(aiTimeoutRef.current);
+    }
+
+    const difficulty = (currentPlayer as any).aiDifficulty || 'medium';
+    const delay = difficulty === 'easy' ? 2000 : difficulty === 'medium' ? 1500 : 1000;
+
+    if (!gameState.hasRolled) {
+      // AI needs to roll dice
+      aiTimeoutRef.current = setTimeout(() => {
+        rollDice();
+      }, delay + Math.random() * 500); // Add some randomness
+    } else if (gameState.availableMoves.length > 0) {
+      // AI needs to make a move
+      const bestMove = selectBestMove(
+        gameState.availableMoves,
+        gameState.players,
+        currentPlayer,
+        difficulty
+      );
+
+      if (bestMove) {
+        aiTimeoutRef.current = setTimeout(() => {
+          moveToken(bestMove.tokenId);
+        }, delay + Math.random() * 500);
+      }
+    }
+  }, [gameState, getCurrentPlayer, selectBestMove, rollDice, moveToken]);
+
   const nextTurn = useCallback((playerWhoMoved: Player | null, gainedExtraTurn: boolean) => {
     if (!playerWhoMoved && !gainedExtraTurn) { // Case where turn passes due to no moves.
         const currentPlayer = getCurrentPlayer();
@@ -133,7 +189,6 @@ export const useLudoGame = () => {
          if(!currentPlayer) return;
         playerWhoMoved = currentPlayer; // Assume current player gets extra turn
     }
-
 
     if (playerWhoMoved && playerWhoMoved.tokens.every(t => t.state === TokenState.FINISHED)) {
       setGameState(prev => ({
@@ -278,12 +333,51 @@ export const useLudoGame = () => {
     // Check for winner immediately after state update from move
     const allTokensFinished = playerAfterMove.tokens.every(t => t.state === TokenState.FINISHED);
     if (allTokensFinished) {
+      // Award rewards for game completion
+      const isWinner = true;
+      const hasAIOpponents = newPlayersState.some(p => p.isAI && p.id !== playerAfterMove.id);
+
+      // Calculate rewards based on game type and performance
+      let coinReward = 50; // Base reward
+      let experienceReward = 25; // Base experience
+
+      if (hasAIOpponents) {
+        // Bonus for playing against AI
+        const aiDifficulties = newPlayersState
+          .filter(p => p.isAI)
+          .map(p => (p as any).aiDifficulty || 'medium');
+
+        const difficultyMultiplier = aiDifficulties.reduce((mult, diff) => {
+          return mult + (diff === 'hard' ? 1.5 : diff === 'medium' ? 1.2 : 1.0);
+        }, 0) / aiDifficulties.length;
+
+        coinReward = Math.floor(coinReward * difficultyMultiplier);
+        experienceReward = Math.floor(experienceReward * difficultyMultiplier);
+      }
+
+      // Bonus for perfect game (no tokens captured)
+      const tokensLost = playerAfterMove.tokens.filter(t =>
+        // This is a simplified check - in a real implementation you'd track captures
+        false // For now, no perfect game detection
+      ).length;
+
+      if (tokensLost === 0) {
+        coinReward += 25;
+        experienceReward += 15;
+      }
+
+      // Award rewards only to human players
+      if (!playerAfterMove.isAI) {
+        addCoins(coinReward, 'GAME_WIN', `Won game against ${newPlayersState.length - 1} opponents`);
+        addExperience(experienceReward, 'GAME_COMPLETION');
+      }
+
       setGameState(prev => ({
         ...prev,
         players: newPlayersState, // ensure players state is the latest
         winner: playerAfterMove.id,
         gameStatus: 'GAMEOVER',
-        message: `${playerAfterMove.name} wins!`,
+        message: `${playerAfterMove.name} wins!${!playerAfterMove.isAI ? ` +${coinReward} coins, +${experienceReward} XP` : ''}`,
         hasRolled: false, // Prevent further actions
         availableMoves: [],
       }));
@@ -295,20 +389,22 @@ export const useLudoGame = () => {
 
   }, [gameState, getCurrentPlayer, nextTurn]);
 
-  // This useEffect was redundant as rollDice() already handles the scenario
-  // of no available moves after a roll (and not rolling a DICE_MAX).
-  // useEffect(() => {
-  //   if (gameState.gameStatus === 'PLAYING' && gameState.hasRolled && gameState.availableMoves.length === 0 && gameState.diceValue !== DICE_MAX && !gameState.winner) {
-  //     const currentPlayer = getCurrentPlayer();
-  //     if (currentPlayer) {
-  //       const timeoutId = setTimeout(() => {
-  //         nextTurn(currentPlayer, false);
-  //       }, 1500);
-  //       return () => clearTimeout(timeoutId);
-  //     }
-  //   }
-  // }, [gameState.gameStatus, gameState.hasRolled, gameState.availableMoves, gameState.diceValue, gameState.winner, getCurrentPlayer, nextTurn]);
+  // Handle AI turns
+  useEffect(() => {
+    const currentPlayer = getCurrentPlayer();
+    if (currentPlayer?.isAI && gameState.gameStatus === 'PLAYING') {
+      handleAITurn();
+    }
+  }, [gameState.currentPlayerIndex, gameState.hasRolled, gameState.availableMoves, handleAITurn, getCurrentPlayer]);
 
+  // Cleanup AI timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (aiTimeoutRef.current) {
+        clearTimeout(aiTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     gameState,
@@ -316,5 +412,6 @@ export const useLudoGame = () => {
     rollDice,
     moveToken,
     getCurrentPlayer,
+    handleAITurn,
   };
 };

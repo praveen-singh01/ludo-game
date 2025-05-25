@@ -6,18 +6,27 @@ import { PLAYER_SETUP_CONFIG, TOKENS_PER_PLAYER, TOKEN_SIZE_CLASSES } from '../c
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import TokenIcon from './TokenIcon';
+import { getAvatarConfig } from '../constants/cosmetics';
+import { useUserProfileStore } from '../store/userProfileStore';
 
 interface PlayerInfoProps {
   player: Player;
   isCurrentPlayer: boolean;
   finishedTokensCount: number;
+  playerAvatar?: string; // For multiplayer mode
 }
 
-const PlayerInfoCard: React.FC<PlayerInfoProps> = ({ player, isCurrentPlayer, finishedTokensCount }) => {
+const PlayerInfoCard: React.FC<PlayerInfoProps> = ({ player, isCurrentPlayer, finishedTokensCount, playerAvatar }) => {
+  const { profile } = useUserProfileStore();
   const config = PLAYER_SETUP_CONFIG[player.id];
   const homeTokens = player.tokens.filter(t => t.state === 'HOME').length;
   const activeTokens = player.tokens.filter(t => t.state === 'ACTIVE').length;
   const progressPercentage = (finishedTokensCount / TOKENS_PER_PLAYER) * 100;
+
+  // Get avatar - use playerAvatar for multiplayer, or profile avatar for current player
+  const avatarId = playerAvatar || (isCurrentPlayer ? profile?.equippedCosmetics?.avatar : null) || 'default';
+  const avatarConfig = getAvatarConfig(avatarId);
+  const shouldShowAvatar = playerAvatar || isCurrentPlayer;
 
   return (
     <motion.div
@@ -32,8 +41,20 @@ const PlayerInfoCard: React.FC<PlayerInfoProps> = ({ player, isCurrentPlayer, fi
           : 'shadow-md hover:shadow-lg bg-white'
       }`}>
         <CardHeader className="pb-3">
-          <CardTitle className={`flex items-center gap-2 text-lg ${config.textColor}`}>
-            <div className={`w-4 h-4 rounded-full ${config.baseColor}`} />
+          <CardTitle className={`flex items-center gap-3 text-lg ${config.textColor}`}>
+            {/* Avatar Display */}
+            {shouldShowAvatar && avatarConfig ? (
+              <motion.div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 ${avatarConfig.backgroundColor} ${avatarConfig.borderColor}`}
+                whileHover={{ scale: 1.1 }}
+                transition={{ duration: 0.2 }}
+                title={avatarConfig.name}
+              >
+                {avatarConfig.emoji}
+              </motion.div>
+            ) : (
+              <div className={`w-4 h-4 rounded-full ${config.baseColor}`} />
+            )}
             {player.name}
             {isCurrentPlayer && (
               <motion.div

@@ -212,14 +212,38 @@ const ShopPage: React.FC<ShopPageProps> = ({ onClose }) => {
                         <CardContent className="p-4">
                           {/* Item Preview */}
                           <div className="relative mb-4">
-                            <div className="w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                              {/* Placeholder for item preview */}
-                              <div className="text-4xl">
-                                {item.type === CosmeticType.TOKEN_SKIN && '🎯'}
-                                {item.type === CosmeticType.BOARD_THEME && '🎨'}
-                                {item.type === CosmeticType.DICE_DESIGN && '🎲'}
-                                {item.type === CosmeticType.AVATAR && '👤'}
-                              </div>
+                            <div className="w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                              {/* Enhanced Preview based on item type */}
+                              {item.type === CosmeticType.TOKEN_SKIN && (
+                                <div className="flex gap-2">
+                                  <div className={`w-8 h-8 rounded-full border-2 ${item.id === 'golden_tokens' ? 'bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 border-yellow-400 shadow-yellow-400/50 shadow-lg' : item.id === 'crystal_tokens' ? 'bg-gradient-to-br from-cyan-200 via-blue-300 to-purple-400 border-cyan-300 shadow-cyan-400/60 shadow-xl' : item.id === 'neon_tokens' ? 'bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 border-pink-400 shadow-pink-500/70 shadow-lg' : 'bg-red-500 border-red-600'}`} />
+                                  <div className={`w-8 h-8 rounded-full border-2 ${item.id === 'golden_tokens' ? 'bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 border-yellow-400 shadow-yellow-400/50 shadow-lg' : item.id === 'crystal_tokens' ? 'bg-gradient-to-br from-cyan-200 via-blue-300 to-purple-400 border-cyan-300 shadow-cyan-400/60 shadow-xl' : item.id === 'neon_tokens' ? 'bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 border-pink-400 shadow-pink-500/70 shadow-lg' : 'bg-green-500 border-green-600'}`} />
+                                  <div className={`w-8 h-8 rounded-full border-2 ${item.id === 'golden_tokens' ? 'bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 border-yellow-400 shadow-yellow-400/50 shadow-lg' : item.id === 'crystal_tokens' ? 'bg-gradient-to-br from-cyan-200 via-blue-300 to-purple-400 border-cyan-300 shadow-cyan-400/60 shadow-xl' : item.id === 'neon_tokens' ? 'bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 border-pink-400 shadow-pink-500/70 shadow-lg' : 'bg-blue-500 border-blue-600'}`} />
+                                </div>
+                              )}
+                              {item.type === CosmeticType.BOARD_THEME && (
+                                <div className={`w-20 h-20 rounded-lg border-2 ${item.id === 'royal_palace' ? 'bg-gradient-to-br from-purple-300 to-pink-400 border-purple-800' : item.id === 'space_station' ? 'bg-gradient-to-br from-cyan-600 to-blue-700 border-cyan-400' : item.id === 'forest_grove' ? 'bg-gradient-to-br from-green-400 to-emerald-500 border-green-800' : 'bg-gradient-to-br from-yellow-200 to-amber-300 border-amber-800'}`}>
+                                  <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-0.5 p-1">
+                                    {Array.from({ length: 9 }).map((_, i) => (
+                                      <div key={i} className={`rounded-sm ${item.id === 'royal_palace' ? 'bg-purple-100' : item.id === 'space_station' ? 'bg-slate-700' : item.id === 'forest_grove' ? 'bg-green-100' : 'bg-white'}`} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {item.type === CosmeticType.DICE_DESIGN && (
+                                <div className={`w-16 h-16 rounded-lg border-2 grid grid-cols-3 grid-rows-3 gap-1 p-2 ${item.id === 'wooden_dice' ? 'bg-gradient-to-br from-amber-600 to-amber-800 border-amber-900' : item.id === 'diamond_dice' ? 'bg-gradient-to-br from-cyan-100 to-blue-200 border-cyan-400' : item.id === 'fire_dice' ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-700' : 'bg-white border-gray-800'}`}>
+                                  {[0, 2, 4, 6, 8].map(i => (
+                                    <div key={i} className={`${i === 4 ? 'col-start-2 row-start-2' : ''}`}>
+                                      {i === 4 && <div className={`w-2 h-2 rounded-full ${item.id === 'wooden_dice' ? 'bg-amber-100' : item.id === 'diamond_dice' ? 'bg-cyan-800' : item.id === 'fire_dice' ? 'bg-yellow-100' : 'bg-black'}`} />}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {item.type === CosmeticType.AVATAR && (
+                                <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center text-2xl ${item.id.includes('male') ? (item.id === 'male_knight' ? 'bg-gradient-to-br from-blue-500 to-blue-700 border-blue-800' : item.id === 'male_wizard' ? 'bg-gradient-to-br from-purple-500 to-purple-700 border-purple-800' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-800') : (item.id === 'female_knight' ? 'bg-gradient-to-br from-pink-500 to-pink-700 border-pink-800' : item.id === 'female_mage' ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 border-indigo-800' : 'bg-gradient-to-br from-slate-600 to-slate-800 border-slate-900')}`}>
+                                  {item.id.includes('knight') ? '🛡️' : item.id.includes('wizard') || item.id.includes('mage') ? '🧙' : item.id.includes('warrior') ? '⚔️' : item.id.includes('assassin') ? '🗡️' : '👤'}
+                                </div>
+                              )}
                             </div>
 
                             {/* Rarity Badge */}

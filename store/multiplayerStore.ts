@@ -273,16 +273,43 @@ export const useMultiplayerStore = create<MultiplayerState>()(
         const { socket } = get()
         if (!socket?.connected) return
 
-        set({ playerName })
-        socket.emit('create-room', { playerName, maxPlayers, isPrivate })
+        // Get user profile data for avatar and audio settings
+        const getUserProfileData = async () => {
+          const { useUserProfileStore } = await import('./userProfileStore')
+          return useUserProfileStore.getState().profile
+        }
+
+        getUserProfileData().then(profile => {
+          set({ playerName })
+          socket.emit('create-room', {
+            playerName,
+            maxPlayers,
+            isPrivate,
+            avatar: profile?.equippedCosmetics?.avatar || 'default',
+            audioSettings: profile?.settings
+          })
+        })
       },
 
       joinRoom: (roomId: string, playerName: string) => {
         const { socket } = get()
         if (!socket?.connected) return
 
-        set({ playerName })
-        socket.emit('join-room', { roomId, playerName })
+        // Get user profile data for avatar and audio settings
+        const getUserProfileData = async () => {
+          const { useUserProfileStore } = await import('./userProfileStore')
+          return useUserProfileStore.getState().profile
+        }
+
+        getUserProfileData().then(profile => {
+          set({ playerName })
+          socket.emit('join-room', {
+            roomId,
+            playerName,
+            avatar: profile?.equippedCosmetics?.avatar || 'default',
+            audioSettings: profile?.settings
+          })
+        })
       },
 
       leaveRoom: () => {

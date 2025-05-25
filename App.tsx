@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Settings, Save, Menu, Globe, Gamepad2, User, Trophy, ShoppingBag } from 'lucide-react';
+import { RotateCcw, Settings, Save, Menu, Globe, Gamepad2, User, Trophy, ShoppingBag, Target, Users, Crown, Calendar } from 'lucide-react';
 import { useLudoGame } from './hooks/useLudoGame';
 import { useGameStore } from './store/gameStore';
 import { useMultiplayerStore } from './store/multiplayerStore';
@@ -9,12 +9,18 @@ import GameBoard from './components/GameBoard';
 import DiceRoll from './components/DiceRoll';
 import { PlayerInfoCard, GameStatusDisplay } from './components/PlayerInfo';
 import GameSetup from './components/GameSetup';
+import { AIGameSetup } from './components/AIGameSetup';
 import MultiplayerSetup from './components/multiplayer/MultiplayerSetup';
 import MultiplayerLobby from './components/multiplayer/MultiplayerLobby';
 import ChatPanel from './components/multiplayer/ChatPanel';
 import ProfilePage from './components/profile/ProfilePage';
 import LeaderboardPage from './components/leaderboard/LeaderboardPage';
 import ShopPage from './components/shop/ShopPage';
+import DailyChallengesPage from './components/challenges/DailyChallengesPage';
+import FriendsPage from './components/friends/FriendsPage';
+import BattlePassPage from './components/battlepass/BattlePassPage';
+import TournamentPage from './components/tournaments/TournamentPage';
+import AudioControls from './components/ui/audio-controls';
 import { Button } from './components/ui/button';
 import { PLAYER_SETUP_CONFIG } from './constants';
 
@@ -47,11 +53,18 @@ const App: React.FC = () => {
 
   // State for game mode and page navigation
   const [gameMode, setGameMode] = React.useState<'menu' | 'single' | 'multiplayer'>('menu');
-  const [currentPage, setCurrentPage] = React.useState<'game' | 'profile' | 'leaderboard' | 'shop'>('game');
+  const [currentPage, setCurrentPage] = React.useState<'game' | 'profile' | 'leaderboard' | 'shop' | 'challenges' | 'friends' | 'battlepass' | 'tournaments'>('game');
+  const [showAudioControls, setShowAudioControls] = useState(false);
 
   // Use multiplayer game state if in multiplayer mode, otherwise use single player
   const activeGameState = isMultiplayerGame ? multiplayerGameState : gameState;
-  const currentPlayer = activeGameState ? getCurrentPlayer() : null;
+
+  // Get current player based on game mode
+  const currentPlayer = activeGameState ? (
+    isMultiplayerGame && multiplayerGameState
+      ? multiplayerGameState.players[multiplayerGameState.currentPlayerIndex]
+      : getCurrentPlayer()
+  ) : null;
 
   // Update store when game state changes
   React.useEffect(() => {
@@ -69,12 +82,15 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated, initializeProfile]);
 
-  // Handle multiplayer lobby display
+  // Handle multiplayer lobby display and game transitions
   useEffect(() => {
     if (showLobby && currentRoom) {
       setGameMode('multiplayer');
+    } else if (isMultiplayerGame && multiplayerGameState) {
+      // When game starts, ensure we stay in multiplayer mode but exit lobby
+      setGameMode('multiplayer');
     }
-  }, [showLobby, currentRoom]);
+  }, [showLobby, currentRoom, isMultiplayerGame, multiplayerGameState]);
 
   const handleSaveGame = () => {
     if (!isMultiplayerGame) {
@@ -121,6 +137,22 @@ const App: React.FC = () => {
     return <ShopPage onClose={() => setCurrentPage('game')} />;
   }
 
+  if (currentPage === 'challenges') {
+    return <DailyChallengesPage onBack={() => setCurrentPage('game')} />;
+  }
+
+  if (currentPage === 'friends') {
+    return <FriendsPage onBack={() => setCurrentPage('game')} />;
+  }
+
+  if (currentPage === 'battlepass') {
+    return <BattlePassPage onBack={() => setCurrentPage('game')} />;
+  }
+
+  if (currentPage === 'tournaments') {
+    return <TournamentPage onBack={() => setCurrentPage('game')} />;
+  }
+
   // Game mode selection screen
   if (gameMode === 'menu') {
     return (
@@ -161,6 +193,7 @@ const App: React.FC = () => {
                 <ShoppingBag className="w-5 h-5 text-green-400" />
                 <span className="text-white font-semibold">{profile.coins.toLocaleString()} coins</span>
               </div>
+              <AudioControls compact className="ml-4" />
             </motion.div>
           )}
 
@@ -208,32 +241,71 @@ const App: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            className="space-y-4"
           >
-            <Button
-              onClick={() => setCurrentPage('profile')}
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
-            >
-              <User className="w-6 h-6" />
-              <span>Profile & Stats</span>
-            </Button>
-            <Button
-              onClick={() => setCurrentPage('leaderboard')}
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
-            >
-              <Trophy className="w-6 h-6" />
-              <span>Leaderboard</span>
-            </Button>
-            <Button
-              onClick={() => setCurrentPage('shop')}
-              variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
-            >
-              <ShoppingBag className="w-6 h-6" />
-              <span>Cosmetic Shop</span>
-            </Button>
+            {/* Primary Features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => setCurrentPage('profile')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+              >
+                <User className="w-6 h-6" />
+                <span>Profile & Stats</span>
+              </Button>
+              <Button
+                onClick={() => setCurrentPage('leaderboard')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+              >
+                <Trophy className="w-6 h-6" />
+                <span>Leaderboard</span>
+              </Button>
+              <Button
+                onClick={() => setCurrentPage('shop')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-16 flex-col gap-2"
+              >
+                <ShoppingBag className="w-6 h-6" />
+                <span>Cosmetic Shop</span>
+              </Button>
+            </div>
+
+            {/* New Features */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button
+                onClick={() => setCurrentPage('challenges')}
+                variant="outline"
+                className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30 text-white hover:from-green-500/30 hover:to-emerald-500/30 h-14 flex-col gap-1"
+              >
+                <Target className="w-5 h-5" />
+                <span className="text-sm">Daily Challenges</span>
+              </Button>
+              <Button
+                onClick={() => setCurrentPage('friends')}
+                variant="outline"
+                className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/30 text-white hover:from-blue-500/30 hover:to-purple-500/30 h-14 flex-col gap-1"
+              >
+                <Users className="w-5 h-5" />
+                <span className="text-sm">Friends</span>
+              </Button>
+              <Button
+                onClick={() => setCurrentPage('battlepass')}
+                variant="outline"
+                className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30 text-white hover:from-purple-500/30 hover:to-pink-500/30 h-14 flex-col gap-1"
+              >
+                <Crown className="w-5 h-5" />
+                <span className="text-sm">Battle Pass</span>
+              </Button>
+              <Button
+                onClick={() => setCurrentPage('tournaments')}
+                variant="outline"
+                className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-400/30 text-white hover:from-yellow-500/30 hover:to-orange-500/30 h-14 flex-col gap-1"
+              >
+                <Calendar className="w-5 h-5" />
+                <span className="text-sm">Tournaments</span>
+              </Button>
+            </div>
           </motion.div>
         </motion.div>
       </div>
@@ -242,20 +314,29 @@ const App: React.FC = () => {
 
   // Multiplayer setup and lobby
   if (gameMode === 'multiplayer') {
-    if (showLobby && currentRoom) {
+    // If we have an active multiplayer game, proceed to game board
+    if (isMultiplayerGame && multiplayerGameState) {
+      // Continue to game board rendering below
+    } else if (showLobby && currentRoom) {
       return (
         <>
           <MultiplayerLobby />
           <ChatPanel />
         </>
       );
+    } else {
+      return <MultiplayerSetup onBackToSinglePlayer={() => setGameMode('menu')} />;
     }
-    return <MultiplayerSetup onBackToSinglePlayer={() => setGameMode('menu')} />;
   }
 
   // Single player setup
   if (gameMode === 'single' && (!activeGameState || activeGameState.gameStatus === 'SETUP')) {
-    return <GameSetup onSetupComplete={(numPlayers) => initializeGame(numPlayers)} />;
+    return (
+      <AIGameSetup
+        onSetupComplete={(numPlayers, aiPlayers) => initializeGame(numPlayers, aiPlayers)}
+        onBack={() => setGameMode('menu')}
+      />
+    );
   }
 
   return (
@@ -330,13 +411,32 @@ const App: React.FC = () => {
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm">
+          <AudioControls compact />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAudioControls(!showAudioControls)}
+          >
             <Settings className="w-4 h-4" />
           </Button>
         </div>
       </motion.div>
 
       <GameStatusDisplay gameState={activeGameState!} currentPlayer={currentPlayer} />
+
+      {/* Audio Controls Panel */}
+      <AnimatePresence>
+        {showAudioControls && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full max-w-md mx-auto mb-4"
+          >
+            <AudioControls showAdvanced />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -410,7 +510,7 @@ const App: React.FC = () => {
                   diceValue={activeGameState!.diceValue}
                   onRoll={handleRollDice}
                   canRoll={!activeGameState!.hasRolled && !activeGameState!.winner}
-                  currentPlayerName={PLAYER_SETUP_CONFIG[currentPlayer.id].name}
+                  currentPlayerName={isMultiplayerGame ? currentPlayer.name : PLAYER_SETUP_CONFIG[currentPlayer.id].name}
                 />
               </motion.div>
             )}

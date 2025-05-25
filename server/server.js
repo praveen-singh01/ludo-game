@@ -18,10 +18,13 @@ const corsOptions = {
     "http://localhost:5173",
     "http://localhost:3000",
     "https://ludo-master-game-em0p5pr3n-praveen-singh01s-projects.vercel.app",
-    /\.vercel\.app$/
-  ],
+    /\.vercel\.app$/,
+    /\.render\.com$/,
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
-  methods: ["GET", "POST"]
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
 
 app.use(cors(corsOptions));
@@ -29,15 +32,29 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: corsOptions,
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  allowEIO3: true
 });
 
 // Initialize managers
 const roomManager = new GameRoomManager();
 const gameStateManager = new GameStateManager();
 
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.json({
+    message: 'Ludo Master Server is running!',
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -70,12 +87,15 @@ io.on('connection', (socket) => {
 
   // Create or join room
   socket.on('create-room', (data) => {
-    const { playerName, maxPlayers = 4, isPrivate = false } = data;
+    const { playerName, maxPlayers = 4, isPrivate = false, avatar, audioSettings } = data;
     const roomId = uuidv4().substring(0, 8).toUpperCase();
 
     try {
-      const room = roomManager.createRoom(roomId, maxPlayers, isPrivate);
-      const player = roomManager.addPlayerToRoom(roomId, socket.id, playerName);
+      roomManager.createRoom(roomId, maxPlayers, isPrivate);
+      const player = roomManager.addPlayerToRoom(roomId, socket.id, playerName, {
+        avatar,
+        audioSettings
+      });
 
       socket.join(roomId);
       socket.roomId = roomId;
@@ -94,10 +114,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join-room', (data) => {
-    const { roomId, playerName } = data;
+    const { roomId, playerName, avatar, audioSettings } = data;
 
     try {
-      const player = roomManager.addPlayerToRoom(roomId, socket.id, playerName);
+      const player = roomManager.addPlayerToRoom(roomId, socket.id, playerName, {
+        avatar,
+        audioSettings
+      });
 
       socket.join(roomId);
       socket.roomId = roomId;
@@ -278,8 +301,31 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-server.listen(PORT, () => {
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
+  });
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Ludo Master multiplayer server running on port ${PORT}`);
-  console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(', ')}`);
+  console.log(`🌐 Environment: ${NODE_ENV}`);
+  console.log(`🔗 CORS enabled for: ${corsOptions.origin.filter(o => typeof o === 'string').join(', ')}`);
+  console.log(`📊 Health check available at: /health`);
 });

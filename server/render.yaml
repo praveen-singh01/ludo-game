@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ludo-master-server
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        sync: false
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    disk:
+      name: ludo-server-disk
+      size: 1GB
+      mountPath: /opt/render/project/src
+    autoDeploy: true
+    branch: main
+    rootDir: server

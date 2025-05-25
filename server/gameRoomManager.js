@@ -42,6 +42,8 @@ export class GameRoomManager {
         id: p.id,
         name: p.name,
         color: p.color,
+        avatar: p.avatar,
+        audioSettings: p.audioSettings,
         isReady: p.isReady,
         connected: p.connected,
         isHost: p.isHost
@@ -51,7 +53,7 @@ export class GameRoomManager {
     };
   }
 
-  addPlayerToRoom(roomId, socketId, playerName) {
+  addPlayerToRoom(roomId, socketId, playerName, playerData = {}) {
     const room = this.getRoom(roomId);
     if (!room) {
       throw new Error('Room not found');
@@ -73,7 +75,7 @@ export class GameRoomManager {
     // Assign color
     const usedColors = room.players.map(p => p.color);
     const availableColors = this.playerColors.filter(color => !usedColors.includes(color));
-    
+
     if (availableColors.length === 0) {
       throw new Error('No available colors');
     }
@@ -83,6 +85,15 @@ export class GameRoomManager {
       socketId,
       name: playerName,
       color: availableColors[0],
+      avatar: playerData.avatar || 'default',
+      audioSettings: {
+        soundEnabled: true,
+        masterVolume: 0.7,
+        soundEffectsVolume: 0.8,
+        musicVolume: 0.5,
+        notificationsVolume: 0.6,
+        ...playerData.audioSettings
+      },
       isReady: false,
       connected: true,
       isHost: room.players.length === 0, // First player is host
@@ -179,7 +190,7 @@ export class GameRoomManager {
     if (!room) return false;
 
     // Need at least 2 players, all must be ready and connected
-    return room.players.length >= 2 && 
+    return room.players.length >= 2 &&
            room.players.every(p => p.isReady && p.connected) &&
            room.gameStatus === 'waiting';
   }
@@ -195,10 +206,10 @@ export class GameRoomManager {
   // Clean up inactive rooms (older than 1 hour with no activity)
   cleanupInactiveRooms() {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
+
     for (const [roomId, room] of this.rooms.entries()) {
       const lastActivity = new Date(room.lastActivity);
-      
+
       if (lastActivity < oneHourAgo) {
         this.deleteRoom(roomId);
         console.log(`Cleaned up inactive room: ${roomId}`);
